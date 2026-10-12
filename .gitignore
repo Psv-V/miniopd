@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+
+# Test and tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Local settings
+.env
+
+# Large generated artifacts
+/data/
+/results/
+/checkpoints/
+*.log
+
+# macOS
+.DS_Store
