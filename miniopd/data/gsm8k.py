@@ -17,15 +17,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from miniopd.evaluation.prompt import SYSTEM_PROMPT, build_prompt, build_sft_messages
+
 GSM8K_DATASET = "openai/gsm8k"
 GSM8K_CONFIG = "main"
 GSM8K_TRAIN_SIZE = 7_473
 GSM8K_TEST_SIZE = 1_319
 SPLIT_SEED = 42
-SYSTEM_PROMPT = (
-    "Please reason step by step, and put your final answer within \\boxed{}."
-)
-
 _REVISION_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
@@ -295,16 +293,6 @@ def manifest_jsonl_bytes(manifest: Sequence[Mapping[str, Any]]) -> bytes:
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
-def build_prompt(question: str) -> list[dict[str, str]]:
-    """Build the single prompt contract shared by generation and evaluation."""
-    if not isinstance(question, str) or not question.strip():
-        raise DataValidationError("cannot build a prompt from an empty question")
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": question.strip()},
-    ]
-
-
 def _resolve_manifest_record(
     row: Mapping[str, Any],
     train_records: Sequence[Mapping[str, Any]],
@@ -410,8 +398,7 @@ def build_sft_records(
         response = teacher_responses[sample_id]
         if not isinstance(response, str) or not response.strip():
             raise DataValidationError(f"empty teacher response for {sample_id}")
-        messages = [dict(message) for message in item["messages"]]
-        messages.append({"role": "assistant", "content": response.strip()})
+        messages = build_sft_messages(str(item["question"]), response)
         output.append(
             {
                 "sample_id": sample_id,
