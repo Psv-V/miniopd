@@ -50,3 +50,29 @@ Append `-run02`, `-run03`, and so on only when repeating the same configuration.
 
 Large checkpoints, local data, and raw results are ignored by Git. Curated
 reports and the code or configuration needed to reproduce them are versioned.
+
+## GSM8K evaluation
+
+Formal evaluation uses greedy decoding from
+`configs/evaluation/gsm8k_greedy.yaml`. Transformers and vLLM write the same
+resumable JSONL schema and use the same answer parser and metric aggregation.
+
+```bash
+python -m miniopd.evaluation run \
+  --config configs/evaluation/gsm8k_greedy.yaml \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --input data/final/gsm8k/<revision>/evaluation_test.parquet \
+  --output results/<run_name>/predictions.jsonl \
+  --summary results/<run_name>/summary.json
+```
+
+The command safely skips sample IDs already present in `predictions.jsonl`.
+Resuming with a different model, backend, or generation configuration is
+rejected. Saved predictions can be rescored without model inference:
+
+```bash
+python -m miniopd.evaluation score \
+  --input results/<run_name>/predictions.jsonl \
+  --output results/<run_name>/rescored.jsonl \
+  --summary results/<run_name>/rescored_summary.json
+```

@@ -314,7 +314,7 @@ User:
 
 ### 6.1 统一生成接口
 
-- 支持 MLX、Transformers 和 vLLM 后端；
+- 支持 Transformers 和 vLLM 后端；
 - 支持 greedy、batch generation 和断点续跑；
 - 各后端输出同一种 JSONL schema。
 
