@@ -21,6 +21,14 @@ dev = [
     "pytest>=8",
     "ruff>=0.8",
 ]
+sft = [
+    "accelerate>=1.2,<2",
+    "datasets==4.8.5",
+    "transformers>=4.48,<5",
+]
+opd-tests = [
+    "torch>=2.2",
+]
 
 [project.scripts]
 miniopd = "miniopd.cli:main"

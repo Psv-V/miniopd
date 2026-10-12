@@ -1,6 +1,7 @@
 backend: vllm
 dtype: bfloat16
 temperature: 0
+top_p: 1.0
 do_sample: false
 max_new_tokens: 512
 batch_size: 8

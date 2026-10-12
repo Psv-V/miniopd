@@ -55,11 +55,16 @@ class TransformersBackend:
         encoded = {key: value.to(device) for key, value in encoded.items()}
         input_lengths = encoded["attention_mask"].sum(dim=1).tolist()
         started = time.perf_counter()
+        if config.seed is not None:
+            self._torch.manual_seed(config.seed)
+            if self._torch.cuda.is_available():
+                self._torch.cuda.manual_seed_all(config.seed)
         with self._torch.inference_mode():
             generated = self.model.generate(
                 **encoded,
                 do_sample=config.do_sample,
                 temperature=config.temperature if config.do_sample else None,
+                top_p=config.top_p if config.do_sample else None,
                 max_new_tokens=config.max_new_tokens,
                 pad_token_id=self.tokenizer.pad_token_id,
             )

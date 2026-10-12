@@ -1,0 +1,10 @@
+backend: vllm
+dtype: bfloat16
+temperature: 0.7
+top_p: 0.95
+do_sample: true
+max_new_tokens: 512
+batch_size: 8
+expected_inputs: 3000
+seed: 42
+review_samples_per_group: 10

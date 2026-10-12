@@ -13,20 +13,26 @@ class GenerationConfig:
     """Deterministic settings used by formal evaluation."""
 
     temperature: float = 0.0
+    top_p: float = 1.0
     do_sample: bool = False
     max_new_tokens: int = 512
     batch_size: int = 8
     dtype: str = "auto"
+    seed: int | None = None
 
     def __post_init__(self) -> None:
         if self.temperature < 0:
             raise ValueError("temperature must be non-negative")
+        if not 0 < self.top_p <= 1:
+            raise ValueError("top_p must be in (0, 1]")
         if self.max_new_tokens < 1:
             raise ValueError("max_new_tokens must be positive")
         if self.batch_size < 1:
             raise ValueError("batch_size must be positive")
         if self.dtype not in {"auto", "bfloat16", "float16", "float32"}:
             raise ValueError(f"unsupported dtype: {self.dtype}")
+        if self.seed is not None and self.seed < 0:
+            raise ValueError("seed must be non-negative")
         if not self.do_sample and self.temperature != 0:
             raise ValueError("greedy decoding requires temperature=0")
 

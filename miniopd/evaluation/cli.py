@@ -86,6 +86,7 @@ def _run(args: argparse.Namespace) -> None:
     allowed = {
         "backend",
         "temperature",
+        "top_p",
         "do_sample",
         "max_new_tokens",
         "batch_size",
@@ -100,6 +101,7 @@ def _run(args: argparse.Namespace) -> None:
     dtype = args.dtype or str(settings.get("dtype", "auto"))
     config = GenerationConfig(
         temperature=float(settings.get("temperature", 0)),
+        top_p=float(settings.get("top_p", 1)),
         do_sample=bool(settings.get("do_sample", False)),
         max_new_tokens=(
             args.max_new_tokens

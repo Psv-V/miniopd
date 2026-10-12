@@ -51,7 +51,9 @@ class VLLMBackend:
         ]
         params = SamplingParams(
             temperature=config.temperature,
+            top_p=config.top_p,
             max_tokens=config.max_new_tokens,
+            seed=config.seed,
         )
         started = time.perf_counter()
         requests = self.engine.generate(prompts, params, use_tqdm=False)

@@ -33,6 +33,7 @@ class PreEvaluationConfig:
     backend: str = "vllm"
     dtype: str = "bfloat16"
     temperature: float = 0.0
+    top_p: float = 1.0
     do_sample: bool = False
     max_new_tokens: int = 512
     batch_size: int = 8
@@ -65,6 +66,7 @@ class PreEvaluationConfig:
     def generation_config(self) -> GenerationConfig:
         return GenerationConfig(
             temperature=self.temperature,
+            top_p=self.top_p,
             do_sample=self.do_sample,
             max_new_tokens=self.max_new_tokens,
             batch_size=self.batch_size,

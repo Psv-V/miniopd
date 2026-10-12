@@ -143,3 +143,86 @@ generation, and small-batch generation before starting the resumable full run.
 It records package versions, GPU identity/topology, rendered prompt samples,
 per-example predictions, aggregate metrics, and the manual-review queue. The
 summary explicitly identifies the score as this project's own full-test result.
+
+## Cold-start teacher data
+
+Generate one sampled teacher solution for every row in the fixed 3000-example
+SFT split. The raw JSONL is append-only and resumable; the filtered JSONL is a
+deterministic derivative and never replaces failed generations.
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+
+python -m miniopd.generation \
+  --config configs/generation/coldstart_teacher_qwen15b.yaml \
+  --model-config configs/models/qwen2.5-math-1.5b-instruct.yaml \
+  --input "data/final/gsm8k/$REVISION/teacher_rollout_input.parquet" \
+  --output-dir results/coldstart-qwen15bmath-s42
+```
+
+The output contains all raw generations, the retained `sft_train.jsonl`, filter
+statistics, the resolved configuration, and a deterministic manual-review queue.
+
+## Cold-start SFT
+
+First inspect the actual token distribution. `max_length: auto` resolves to the
+observed maximum rounded up to 64, so training does not silently truncate a
+teacher trajectory.
+
+```bash
+python -m miniopd.training lengths \
+  --model-config configs/models/qwen2.5-0.5b-instruct.yaml \
+  --train-input results/coldstart-qwen15bmath-s42/sft_train.jsonl \
+  --output results/coldstart-qwen15bmath-s42/token_lengths.json
+```
+
+Run the required 32-row, five-step smoke test before the full run:
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+
+python -m miniopd.training sft --smoke \
+  --config configs/sft/qwen05b_coldstart_full.yaml \
+  --model-config configs/models/qwen2.5-0.5b-instruct.yaml \
+  --train-input results/coldstart-qwen15bmath-s42/sft_train.jsonl \
+  --validation-input "data/final/gsm8k/$REVISION/evaluation_validation.parquet" \
+  --output-dir results/sft-qwen05b-coldstart-smoke-s42
+```
+
+The smoke test trains to step 2, saves a checkpoint, resumes to step 5, reloads
+the exported model independently, and verifies generation. Remove `--smoke` and
+use a new output directory for the full one-epoch run. Prompt tokens are masked
+with `-100`; only teacher assistant tokens contribute to the SFT loss. Checkpoint
+selection uses validation loss, never the official test split.
+
+After the full SFT run, evaluate the independently loadable `final_model` with
+the same full-test greedy pipeline used for the base model:
+
+```bash
+python -m miniopd.evaluation run \
+  --config configs/evaluation/gsm8k_greedy.yaml \
+  --backend vllm \
+  --model results/sft-qwen05b-coldstart-s42/final_model \
+  --input "data/final/gsm8k/$REVISION/evaluation_test.parquet" \
+  --output results/eval-qwen05b-sft-full-bf16-s42/predictions.jsonl \
+  --summary results/eval-qwen05b-sft-full-bf16-s42/summary.json
+```
+
+## Sampled-token OPD algorithm tests
+
+Before integrating Qwen and verl, the core math is tested with hand-checkable CPU
+tensors and tiny PyTorch modules:
+
+```bash
+make opd-test
+```
+
+The tests cover next-token logits shift, response/EOS masking, sampled-token k1
+reward signs and clamps, stop-gradient and frozen-teacher behavior, Top-k overlap,
+entropy gap, and actor-to-rollout weight synchronization. The reference mask
+includes the first response EOS and excludes prompt, padding, and all positions
+after that EOS. `opd_tensor_records` records shape, dtype, device, gradient state,
+and semantics for every tensor that must be checked again during verl integration.
+
+This in-process sync test does not claim to validate FSDP-to-vLLM transfer; that
+cross-process GPU check belongs to the next verl integration stage.
