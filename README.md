@@ -76,3 +76,32 @@ python -m miniopd.evaluation score \
   --output results/<run_name>/rescored.jsonl \
   --summary results/<run_name>/rescored_summary.json
 ```
+
+## GPU first-100 pre-evaluation
+
+Before training, run the student and teacher separately on the first 100 rows of
+the official GSM8K test split. The fixed configuration enforces BF16, greedy
+decoding, and `max_new_tokens=512`.
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+INPUT=data/final/gsm8k/$REVISION/evaluation_test.parquet
+
+python -m miniopd.evaluation preeval \
+  --config configs/evaluation/gsm8k_preeval_100_vllm.yaml \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --input "$INPUT" \
+  --output-dir results/preeval-qwen05b-base-greedy100-s42
+
+python -m miniopd.evaluation preeval \
+  --config configs/evaluation/gsm8k_preeval_100_vllm.yaml \
+  --model Qwen/Qwen2.5-Math-1.5B-Instruct \
+  --input "$INPUT" \
+  --output-dir results/preeval-qwen15bmath-teacher-greedy100-s42
+```
+
+Each directory contains `predictions.jsonl`, `summary.json`, the resolved
+configuration, CUDA/package environment metadata, all 100 tokenizer-rendered
+prompts, and a deterministic `review_queue.json`. The review queue includes
+random correct and wrong examples plus every format error and truncated output.
+These runs are labeled as pre-evaluations and are not official full-test scores.

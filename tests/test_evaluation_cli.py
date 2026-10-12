@@ -25,8 +25,7 @@ def test_load_formal_evaluation_config(tmp_path):
     }
 
 
-def test_config_rejects_unknown_keys(tmp_path):
+def test_yaml_loader_leaves_command_specific_validation_to_caller(tmp_path):
     path = tmp_path / "evaluation.yaml"
     path.write_text("temperature: 0\ntypo: true\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="unknown"):
-        _load_yaml(path)
+    assert _load_yaml(path)["typo"] is True

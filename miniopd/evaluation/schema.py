@@ -16,6 +16,7 @@ class GenerationConfig:
     do_sample: bool = False
     max_new_tokens: int = 512
     batch_size: int = 8
+    dtype: str = "auto"
 
     def __post_init__(self) -> None:
         if self.temperature < 0:
@@ -24,6 +25,8 @@ class GenerationConfig:
             raise ValueError("max_new_tokens must be positive")
         if self.batch_size < 1:
             raise ValueError("batch_size must be positive")
+        if self.dtype not in {"auto", "bfloat16", "float16", "float32"}:
+            raise ValueError(f"unsupported dtype: {self.dtype}")
         if not self.do_sample and self.temperature != 0:
             raise ValueError("greedy decoding requires temperature=0")
 

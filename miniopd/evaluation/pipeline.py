@@ -128,6 +128,9 @@ def run_evaluation(
 
     summary = summarize_records(read_jsonl(output_path))
     summary["run_wall_seconds"] = time.perf_counter() - started
+    summary["model"] = backend.model_id
+    summary["backend"] = backend.name
+    summary["generation_config"] = config.as_dict()
     return summary
 
 

@@ -25,6 +25,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--backend", choices=("transformers", "vllm"))
     run.add_argument("--batch-size", type=int)
     run.add_argument("--max-new-tokens", type=int)
+    run.add_argument("--dtype", choices=("auto", "bfloat16", "float16", "float32"))
     run.add_argument(
         "--trust-remote-code",
         action="store_true",
@@ -35,6 +36,15 @@ def _build_parser() -> argparse.ArgumentParser:
     score.add_argument("--input", type=Path, required=True)
     score.add_argument("--output", type=Path, required=True)
     score.add_argument("--summary", type=Path, required=True)
+
+    preeval = subparsers.add_parser(
+        "preeval", help="run the fixed GSM8K test first-100 GPU check"
+    )
+    preeval.add_argument("--input", type=Path, required=True)
+    preeval.add_argument("--output-dir", type=Path, required=True)
+    preeval.add_argument("--model", required=True)
+    preeval.add_argument("--config", type=Path, required=True)
+    preeval.add_argument("--trust-remote-code", action="store_true")
     return parser
 
 
@@ -50,24 +60,26 @@ def _load_yaml(path: Path | None) -> dict[str, Any]:
         return {}
     if not isinstance(value, Mapping):
         raise ValueError("evaluation config must be a YAML mapping")
+    return dict(value)
+
+
+def _run(args: argparse.Namespace) -> None:
+    settings = _load_yaml(args.config)
     allowed = {
         "backend",
         "temperature",
         "do_sample",
         "max_new_tokens",
         "batch_size",
+        "dtype",
     }
-    unexpected = set(value).difference(allowed)
+    unexpected = set(settings).difference(allowed)
     if unexpected:
         raise ValueError(f"unknown evaluation config keys: {sorted(unexpected)}")
-    return dict(value)
-
-
-def _run(args: argparse.Namespace) -> None:
-    settings = _load_yaml(args.config)
     backend_name = args.backend or settings.get("backend")
     if backend_name not in {"transformers", "vllm"}:
         raise ValueError("select transformers or vllm with --backend or --config")
+    dtype = args.dtype or str(settings.get("dtype", "auto"))
     config = GenerationConfig(
         temperature=float(settings.get("temperature", 0)),
         do_sample=bool(settings.get("do_sample", False)),
@@ -81,14 +93,15 @@ def _run(args: argparse.Namespace) -> None:
             if args.batch_size is not None
             else int(settings.get("batch_size", 8))
         ),
+        dtype=dtype,
     )
     if backend_name == "transformers":
         from miniopd.evaluation.backends import TransformersBackend
 
         backend = TransformersBackend(
             args.model,
+            dtype=dtype,
             device_map="auto",
-            torch_dtype="auto",
             trust_remote_code=args.trust_remote_code,
         )
     else:
@@ -96,6 +109,7 @@ def _run(args: argparse.Namespace) -> None:
 
         backend = VLLMBackend(
             args.model,
+            dtype=dtype,
             trust_remote_code=args.trust_remote_code,
         )
     summary = run_evaluation(
@@ -112,5 +126,20 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = _build_parser().parse_args(argv)
     if args.command == "run":
         _run(args)
-    else:
+    elif args.command == "score":
         score_jsonl(args.input, args.output, args.summary)
+    else:
+        from miniopd.evaluation.preeval import (
+            PreEvaluationConfig,
+            print_summary,
+            run_preevaluation,
+        )
+
+        summary = run_preevaluation(
+            input_path=args.input,
+            output_dir=args.output_dir,
+            model_id=args.model,
+            config=PreEvaluationConfig.from_mapping(_load_yaml(args.config)),
+            trust_remote_code=args.trust_remote_code,
+        )
+        print_summary(summary)

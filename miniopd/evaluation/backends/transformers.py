@@ -11,7 +11,9 @@ from miniopd.evaluation.schema import GenerationConfig, GenerationOutput
 class TransformersBackend:
     name = "transformers"
 
-    def __init__(self, model_id: str, **model_kwargs: Any) -> None:
+    def __init__(
+        self, model_id: str, *, dtype: str = "auto", **model_kwargs: Any
+    ) -> None:
         try:
             import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -25,7 +27,10 @@ class TransformersBackend:
         self.tokenizer.padding_side = "left"
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(model_id, **model_kwargs)
+        torch_dtype = dtype if dtype == "auto" else getattr(torch, dtype)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=torch_dtype, **model_kwargs
+        )
         self.model.eval()
 
     def generate_batch(

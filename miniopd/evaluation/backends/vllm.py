@@ -11,13 +11,15 @@ from miniopd.evaluation.schema import GenerationConfig, GenerationOutput
 class VLLMBackend:
     name = "vllm"
 
-    def __init__(self, model_id: str, **engine_kwargs: Any) -> None:
+    def __init__(
+        self, model_id: str, *, dtype: str = "auto", **engine_kwargs: Any
+    ) -> None:
         try:
             from vllm import LLM
         except ImportError as error:
             raise RuntimeError("vLLM backend requires the vllm package") from error
         self.model_id = model_id
-        self.engine = LLM(model=model_id, **engine_kwargs)
+        self.engine = LLM(model=model_id, dtype=dtype, **engine_kwargs)
         self.tokenizer = self.engine.get_tokenizer()
 
     def generate_batch(
