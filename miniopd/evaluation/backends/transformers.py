@@ -12,7 +12,12 @@ class TransformersBackend:
     name = "transformers"
 
     def __init__(
-        self, model_id: str, *, dtype: str = "auto", **model_kwargs: Any
+        self,
+        model_id: str,
+        *,
+        revision: str | None = None,
+        dtype: str = "auto",
+        **model_kwargs: Any,
     ) -> None:
         try:
             import torch
@@ -23,13 +28,14 @@ class TransformersBackend:
             ) from error
         self._torch = torch
         self.model_id = model_id
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        self.model_revision = revision
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
         self.tokenizer.padding_side = "left"
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         torch_dtype = dtype if dtype == "auto" else getattr(torch, dtype)
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch_dtype, **model_kwargs
+            model_id, revision=revision, torch_dtype=torch_dtype, **model_kwargs
         )
         self.model.eval()
 

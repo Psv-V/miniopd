@@ -105,3 +105,41 @@ configuration, CUDA/package environment metadata, all 100 tokenizer-rendered
 prompts, and a deterministic `review_queue.json`. The review queue includes
 random correct and wrong examples plus every format error and truncated output.
 These runs are labeled as pre-evaluations and are not official full-test scores.
+
+## Full BF16 benchmark
+
+After the first-100 pre-evaluation passes, verify that the locked student and
+teacher tokenizers have the same vocabulary and special-token IDs:
+
+```bash
+python -m miniopd.evaluation tokenizer-check \
+  --student-config configs/models/qwen2.5-0.5b-instruct.yaml \
+  --teacher-config configs/models/qwen2.5-math-1.5b-instruct.yaml \
+  --output results/tokenizer_compatibility.json
+```
+
+Then run each locked model revision on all 1319 official GSM8K test rows:
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+INPUT=data/final/gsm8k/$REVISION/evaluation_test.parquet
+
+python -m miniopd.evaluation benchmark \
+  --config configs/evaluation/gsm8k_full_bf16_vllm.yaml \
+  --model-config configs/models/qwen2.5-0.5b-instruct.yaml \
+  --input "$INPUT" \
+  --output-dir results/eval-qwen05b-base-full-bf16-s42
+
+python -m miniopd.evaluation benchmark \
+  --config configs/evaluation/gsm8k_full_bf16_vllm.yaml \
+  --model-config configs/models/qwen2.5-math-1.5b-instruct.yaml \
+  --input "$INPUT" \
+  --output-dir results/eval-qwen15bmath-teacher-full-bf16-s42
+```
+
+The benchmark verifies the exact Hugging Face model commit, all 1319 ordered
+test IDs, writable isolated output storage, free disk space, CUDA/BF16, one-item
+generation, and small-batch generation before starting the resumable full run.
+It records package versions, GPU identity/topology, rendered prompt samples,
+per-example predictions, aggregate metrics, and the manual-review queue. The
+summary explicitly identifies the score as this project's own full-test result.

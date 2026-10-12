@@ -21,6 +21,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output", type=Path, required=True)
     run.add_argument("--summary", type=Path, required=True)
     run.add_argument("--model", required=True)
+    run.add_argument("--model-revision")
     run.add_argument("--config", type=Path)
     run.add_argument("--backend", choices=("transformers", "vllm"))
     run.add_argument("--batch-size", type=int)
@@ -45,6 +46,23 @@ def _build_parser() -> argparse.ArgumentParser:
     preeval.add_argument("--model", required=True)
     preeval.add_argument("--config", type=Path, required=True)
     preeval.add_argument("--trust-remote-code", action="store_true")
+
+    benchmark = subparsers.add_parser(
+        "benchmark", help="run the full official GSM8K BF16 benchmark"
+    )
+    benchmark.add_argument("--input", type=Path, required=True)
+    benchmark.add_argument("--output-dir", type=Path, required=True)
+    benchmark.add_argument("--model-config", type=Path, required=True)
+    benchmark.add_argument("--config", type=Path, required=True)
+    benchmark.add_argument("--trust-remote-code", action="store_true")
+
+    compatibility = subparsers.add_parser(
+        "tokenizer-check", help="compare locked student and teacher tokenizers"
+    )
+    compatibility.add_argument("--student-config", type=Path, required=True)
+    compatibility.add_argument("--teacher-config", type=Path, required=True)
+    compatibility.add_argument("--output", type=Path, required=True)
+    compatibility.add_argument("--trust-remote-code", action="store_true")
     return parser
 
 
@@ -100,6 +118,7 @@ def _run(args: argparse.Namespace) -> None:
 
         backend = TransformersBackend(
             args.model,
+            revision=args.model_revision,
             dtype=dtype,
             device_map="auto",
             trust_remote_code=args.trust_remote_code,
@@ -109,6 +128,7 @@ def _run(args: argparse.Namespace) -> None:
 
         backend = VLLMBackend(
             args.model,
+            revision=args.model_revision,
             dtype=dtype,
             trust_remote_code=args.trust_remote_code,
         )
@@ -128,7 +148,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         _run(args)
     elif args.command == "score":
         score_jsonl(args.input, args.output, args.summary)
-    else:
+    elif args.command == "preeval":
         from miniopd.evaluation.preeval import (
             PreEvaluationConfig,
             print_summary,
@@ -143,3 +163,33 @@ def main(argv: Sequence[str] | None = None) -> None:
             trust_remote_code=args.trust_remote_code,
         )
         print_summary(summary)
+    elif args.command == "benchmark":
+        from miniopd.evaluation.benchmark import (
+            BenchmarkConfig,
+            ModelSpec,
+            print_json,
+            run_benchmark,
+        )
+
+        summary = run_benchmark(
+            input_path=args.input,
+            output_dir=args.output_dir,
+            model=ModelSpec.from_mapping(_load_yaml(args.model_config)),
+            config=BenchmarkConfig.from_mapping(_load_yaml(args.config)),
+            trust_remote_code=args.trust_remote_code,
+        )
+        print_json(summary)
+    else:
+        from miniopd.evaluation.benchmark import (
+            ModelSpec,
+            check_tokenizer_compatibility,
+            print_json,
+        )
+
+        report = check_tokenizer_compatibility(
+            ModelSpec.from_mapping(_load_yaml(args.student_config)),
+            ModelSpec.from_mapping(_load_yaml(args.teacher_config)),
+            trust_remote_code=args.trust_remote_code,
+        )
+        write_json(args.output, report)
+        print_json(report)

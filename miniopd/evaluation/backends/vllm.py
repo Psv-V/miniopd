@@ -12,14 +12,26 @@ class VLLMBackend:
     name = "vllm"
 
     def __init__(
-        self, model_id: str, *, dtype: str = "auto", **engine_kwargs: Any
+        self,
+        model_id: str,
+        *,
+        revision: str | None = None,
+        dtype: str = "auto",
+        **engine_kwargs: Any,
     ) -> None:
         try:
             from vllm import LLM
         except ImportError as error:
             raise RuntimeError("vLLM backend requires the vllm package") from error
         self.model_id = model_id
-        self.engine = LLM(model=model_id, dtype=dtype, **engine_kwargs)
+        self.model_revision = revision
+        self.engine = LLM(
+            model=model_id,
+            revision=revision,
+            tokenizer_revision=revision,
+            dtype=dtype,
+            **engine_kwargs,
+        )
         self.tokenizer = self.engine.get_tokenizer()
 
     def generate_batch(

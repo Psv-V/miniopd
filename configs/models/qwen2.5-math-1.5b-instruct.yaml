@@ -1,0 +1,3 @@
+model_id: Qwen/Qwen2.5-Math-1.5B-Instruct
+revision: aafeb0fc6f22cbf0eaeed126eff8be45b0360a35
+role: teacher

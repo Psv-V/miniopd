@@ -71,6 +71,7 @@ def _record(
         "tokens_per_second": output.tokens_per_second,
         "runtime_message": result.runtime_message,
         "model": backend.model_id,
+        "model_revision": getattr(backend, "model_revision", None),
         "backend": backend.name,
         "generation_config": config.as_dict(),
     }
@@ -90,6 +91,8 @@ def run_evaluation(
     for row in existing:
         if row.get("model") != backend.model_id or row.get("backend") != backend.name:
             raise ValueError("cannot resume with a different model or backend")
+        if row.get("model_revision") != getattr(backend, "model_revision", None):
+            raise ValueError("cannot resume with a different model revision")
         if row.get("generation_config") != config.as_dict():
             raise ValueError("cannot resume with a different generation configuration")
     known_ids = {example.sample_id for example in examples}
@@ -129,6 +132,7 @@ def run_evaluation(
     summary = summarize_records(read_jsonl(output_path))
     summary["run_wall_seconds"] = time.perf_counter() - started
     summary["model"] = backend.model_id
+    summary["model_revision"] = getattr(backend, "model_revision", None)
     summary["backend"] = backend.name
     summary["generation_config"] = config.as_dict()
     return summary

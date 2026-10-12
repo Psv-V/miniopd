@@ -90,6 +90,7 @@ class GenerationBackend:
 
     name: str
     model_id: str
+    model_revision: str | None
 
     def generate_batch(
         self,

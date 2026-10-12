@@ -148,7 +148,15 @@ def _create_backend(
 
 def collect_environment() -> dict[str, Any]:
     packages = {}
-    for name in ("torch", "transformers", "vllm"):
+    for name in (
+        "torch",
+        "transformers",
+        "vllm",
+        "verl",
+        "ray",
+        "datasets",
+        "pyarrow",
+    ):
         try:
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
@@ -177,7 +185,7 @@ def collect_environment() -> dict[str, Any]:
     return environment
 
 
-def _write_resolved_config(path: Path, value: Mapping[str, Any]) -> None:
+def write_resolved_config(path: Path, value: Mapping[str, Any]) -> None:
     import yaml
 
     payload = yaml.safe_dump(dict(value), allow_unicode=True, sort_keys=True)
@@ -189,7 +197,7 @@ def _write_resolved_config(path: Path, value: Mapping[str, Any]) -> None:
     path.write_text(payload, encoding="utf-8")
 
 
-def _save_or_validate_prompts(
+def save_or_validate_prompts(
     examples: Sequence[EvaluationExample], backend: GenerationBackend, path: Path
 ) -> None:
     records = [
@@ -224,11 +232,11 @@ def run_preevaluation(
         "input": str(input_path.resolve()),
         "scope": "gsm8k_test_first_100_preevaluation_not_official_result",
     }
-    _write_resolved_config(output_dir / "resolved_config.yaml", resolved)
+    write_resolved_config(output_dir / "resolved_config.yaml", resolved)
 
     write_json(output_dir / "environment.json", collect_environment())
     backend = backend_factory(model_id, config, trust_remote_code)
-    _save_or_validate_prompts(examples, backend, output_dir / "prompt_debug.jsonl")
+    save_or_validate_prompts(examples, backend, output_dir / "prompt_debug.jsonl")
     summary = run_evaluation(
         examples,
         backend,

@@ -1,0 +1,11 @@
+backend: vllm
+dtype: bfloat16
+temperature: 0
+do_sample: false
+max_new_tokens: 512
+batch_size: 8
+expected_test_size: 1319
+minimum_free_disk_gb: 10
+prompt_debug_samples: 5
+review_seed: 42
+review_samples_per_group: 10
