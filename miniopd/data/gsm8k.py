@@ -133,7 +133,9 @@ def _assign_train_splits(
     if min(sizes.sft, sizes.opd_train, sizes.validation) <= 0:
         raise DataValidationError("all derived split sizes must be positive")
 
-    ordered = sorted(range(train_count), key=lambda index: _split_order_key(seed, index))
+    ordered = sorted(
+        range(train_count), key=lambda index: _split_order_key(seed, index)
+    )
     assignments: dict[int, str] = {}
     sft_end = sizes.sft
     opd_end = sft_end + sizes.opd_train
@@ -243,7 +245,9 @@ def validate_manifest(
 
         if source_split == "train":
             if split not in sizes.as_dict():
-                raise DataValidationError(f"train row assigned to invalid split {split}")
+                raise DataValidationError(
+                    f"train row assigned to invalid split {split}"
+                )
             train_indices.add(index)
         elif source_split == "test":
             if split != "test":
@@ -273,9 +277,13 @@ def validate_manifest(
             raise DataValidationError("empty code_version in manifest")
 
     if train_indices != set(range(sizes.total)):
-        raise DataValidationError("manifest does not cover every train index exactly once")
+        raise DataValidationError(
+            "manifest does not cover every train index exactly once"
+        )
     if test_indices != set(range(test_size)):
-        raise DataValidationError("manifest does not cover every test index exactly once")
+        raise DataValidationError(
+            "manifest does not cover every test index exactly once"
+        )
 
 
 def manifest_jsonl_bytes(manifest: Sequence[Mapping[str, Any]]) -> bytes:
@@ -365,9 +373,7 @@ def build_teacher_rollout_inputs(
 ) -> list[dict[str, Any]]:
     """Create prompts for teacher generation over the cold-start SFT subset."""
     output = []
-    for row, record in _selected_rows(
-        train_records, test_records, manifest, "sft"
-    ):
+    for row, record in _selected_rows(train_records, test_records, manifest, "sft"):
         question = str(record["question"])
         output.append(
             {
@@ -795,4 +801,3 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-
