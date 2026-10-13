@@ -260,6 +260,20 @@ def _write_metrics(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     )
 
 
+def resolve_model_source(
+    model_id: str, model_revision: str, model_path: Path | None
+) -> tuple[str, str | None, Path | None]:
+    """Resolve the load source without replacing canonical model provenance."""
+    if model_path is None:
+        return model_id, model_revision, None
+    resolved_path = model_path.resolve()
+    if not resolved_path.is_dir():
+        raise ValueError(
+            f"local student model path is not a directory: {resolved_path}"
+        )
+    return str(resolved_path), None, resolved_path
+
+
 def run_sft_training(
     *,
     train_input: Path,
@@ -268,6 +282,7 @@ def run_sft_training(
     model_id: str,
     model_revision: str,
     config: SFTConfig,
+    model_path: Path | None = None,
     smoke: bool = False,
     resume_from_checkpoint: Path | None = None,
     trust_remote_code: bool = False,
@@ -292,8 +307,11 @@ def run_sft_training(
 
     set_seed(config.seed)
     output_dir.mkdir(parents=True, exist_ok=True)
+    load_source, load_revision, model_path = resolve_model_source(
+        model_id, model_revision, model_path
+    )
     tokenizer = AutoTokenizer.from_pretrained(
-        model_id, revision=model_revision, trust_remote_code=trust_remote_code
+        load_source, revision=load_revision, trust_remote_code=trust_remote_code
     )
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -331,6 +349,7 @@ def run_sft_training(
         "resolved_max_length": max_length,
         "model_id": model_id,
         "model_revision": model_revision,
+        "model_path": str(model_path) if model_path is not None else None,
         "train_input": str(train_input.resolve()),
         "validation_input": str(validation_input.resolve()),
         "smoke": smoke,
@@ -341,8 +360,8 @@ def run_sft_training(
     write_json(output_dir / "length_report.json", lengths)
 
     model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        revision=model_revision,
+        load_source,
+        revision=load_revision,
         torch_dtype=torch.bfloat16,
         trust_remote_code=trust_remote_code,
     )

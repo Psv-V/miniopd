@@ -3,6 +3,7 @@ from miniopd.training.sft import (
     IGNORE_INDEX,
     SFTConfig,
     length_report,
+    resolve_model_source,
     tokenize_conversation,
     validate_sft_splits,
 )
@@ -44,6 +45,17 @@ def test_sft_config_protects_effective_batch_size():
     assert SFTConfig().effective_batch_size == 32
     with pytest.raises(ValueError, match="effective batch"):
         SFTConfig(gradient_accumulation_steps=8)
+
+
+def test_local_model_path_preserves_canonical_provenance(tmp_path):
+    model_path = tmp_path / "student"
+    model_path.mkdir()
+    source, revision, resolved_path = resolve_model_source(
+        "Qwen/Qwen2.5-0.5B-Instruct", "a" * 40, model_path
+    )
+    assert source == str(model_path.resolve())
+    assert revision is None
+    assert resolved_path == model_path.resolve()
 
 
 def test_sft_split_validation_rejects_leakage_and_test_rows():

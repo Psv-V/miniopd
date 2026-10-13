@@ -42,6 +42,14 @@ def _parser() -> argparse.ArgumentParser:
     train.add_argument("--validation-input", type=Path, required=True)
     train.add_argument("--output-dir", type=Path, required=True)
     train.add_argument("--model-config", type=Path, required=True)
+    train.add_argument(
+        "--model-path",
+        type=Path,
+        help=(
+            "load weights from a verified local snapshot while preserving "
+            "the canonical model ID and revision"
+        ),
+    )
     train.add_argument("--config", type=Path, required=True)
     train.add_argument("--resume-from-checkpoint", type=Path)
     train.add_argument("--smoke", action="store_true")
@@ -69,6 +77,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             output_dir=args.output_dir,
             model_id=str(model["model_id"]),
             model_revision=str(model["revision"]),
+            model_path=args.model_path,
             config=SFTConfig.from_mapping(_load_yaml(args.config)),
             smoke=args.smoke,
             resume_from_checkpoint=args.resume_from_checkpoint,

@@ -185,6 +185,7 @@ REVISION=740312add88f781978c0658806c59bc2815b9866
 python -m miniopd.training sft --smoke \
   --config configs/sft/qwen05b_coldstart_full.yaml \
   --model-config configs/models/qwen2.5-0.5b-instruct.yaml \
+  --model-path /path/to/verified/Qwen2.5-0.5B-Instruct \
   --train-input results/coldstart-qwen15bmath-s42/sft_train.jsonl \
   --validation-input "data/final/gsm8k/$REVISION/evaluation_validation.parquet" \
   --output-dir results/sft-qwen05b-coldstart-smoke-s42
