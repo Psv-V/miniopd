@@ -104,6 +104,14 @@ def test_repetition_detection_and_classification() -> None:
     assert evaluate_answer(output, "2").error_type == ErrorType.REPETITION
 
 
+def test_character_run_repetition_takes_priority_over_truncation() -> None:
+    output = "The answer starts here: " + "7" * 64
+
+    assert detect_repetition(output)
+    result = evaluate_answer(output, "260", truncated=True)
+    assert result.error_type == ErrorType.REPETITION
+
+
 def test_unparseable_reference_is_a_configuration_error() -> None:
     with pytest.raises(ValueError, match="reference answer"):
         evaluate_answer("42", "not a number")

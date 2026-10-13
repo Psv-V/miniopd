@@ -277,6 +277,8 @@ def detect_repetition(output: str, min_repeats: int = 3) -> bool:
     """Detect obvious repeated lines or repeated token blocks at the output tail."""
     if min_repeats < 2:
         raise ValueError("min_repeats must be at least 2")
+    if re.search(r"(?P<char>\S)(?P=char){31,}", output.casefold()):
+        return True
     lines = [" ".join(line.split()).casefold() for line in output.splitlines()]
     lines = [line for line in lines if line]
     for index in range(len(lines) - min_repeats + 1):
@@ -324,14 +326,14 @@ def evaluate_answer(
         )
     if prediction.parsed and prediction.value == reference_answer.value:
         return EvaluationResult(True, prediction, reference_value, None)
-    if truncated:
-        return EvaluationResult(False, prediction, reference_value, ErrorType.TRUNCATED)
     if repetition is None:
         repetition = detect_repetition(output or "")
     if repetition:
         return EvaluationResult(
             False, prediction, reference_value, ErrorType.REPETITION
         )
+    if truncated:
+        return EvaluationResult(False, prediction, reference_value, ErrorType.TRUNCATED)
     if prediction.error_type == ErrorType.FORMAT_ERROR:
         return EvaluationResult(
             False, prediction, reference_value, ErrorType.FORMAT_ERROR
