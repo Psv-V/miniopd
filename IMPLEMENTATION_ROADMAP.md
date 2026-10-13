@@ -858,12 +858,12 @@ Sampled-token OPD + GSM8K outcome reward
 - [x] 理解 sampled-token、Top-1、logits shift、mask 和权重同步
 - [x] 初步确定 sampled-token 主线
 - [ ] 锁定 verl commit 与正式硬件配置
-- [ ] 建立完整项目骨架
-- [ ] 实现 GSM8K 数据与统一评测
+- [x] 建立完整项目骨架
+- [x] 实现 GSM8K 数据与统一评测
 - [ ] 完成 GPU 小规模预评测
 - [ ] 完成 NVIDIA BF16 基准
-- [ ] 完成教师生成和 Cold-start SFT
-- [ ] 完成 sampled-token OPD 单元测试与接入
+- [x] 完成教师生成和 Cold-start SFT 本地代码（GPU 运行待完成）
+- [x] 完成 sampled-token OPD 单元测试与接入代码（GPU smoke 待完成）
 - [ ] 完成端到端 smoke test
 - [ ] 完成正式训练、评测与报告
 - [ ] 完成可选 Top-K/Hybrid 扩展

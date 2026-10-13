@@ -1,0 +1,72 @@
+schema_version: 1
+method: sampled-token
+seed: 42
+
+data:
+  train_count: 3473
+  validation_count: 1000
+
+student:
+  model_id: Qwen/Qwen2.5-0.5B-Instruct
+  base_revision: 7ae557604adf67be50417f59c2c2f167def9a775
+
+teacher:
+  model_id: Qwen/Qwen2.5-Math-1.5B-Instruct
+  revision: aafeb0fc6f22cbf0eaeed126eff8be45b0360a35
+  temperature: 1.0
+
+rollout:
+  n: 2
+  temperature: 1.0
+  top_p: 1.0
+  max_prompt_length: 256
+  max_response_length: 512
+  dtype: bfloat16
+  tensor_model_parallel_size: 1
+  gpu_memory_utilization: 0.45
+
+distillation:
+  loss_mode: k1
+  use_policy_gradient: true
+  use_task_rewards: false
+  policy_loss_mode: vanilla
+  loss_max_clamp: 10.0
+  log_prob_min_clamp: -10.0
+
+actor:
+  learning_rate: 0.000001
+  grad_clip: 1.0
+  epochs: 1
+  full_train_batch_size: 32
+  ppo_micro_batch_size_per_gpu: 1
+  strategy: fsdp2
+
+resources:
+  trainer_gpus_per_node: 1
+  teacher_gpus_per_node: 1
+  nnodes: 1
+  rollout_tensor_parallel_size: 1
+  teacher_tensor_parallel_size: 1
+  teacher_gpu_memory_utilization: 0.70
+  expected_total_gpus: 2
+
+smoke:
+  train_batch_size: 2
+  total_training_steps: 1
+  save_freq: 1
+
+diagnostics:
+  enabled: true
+  interval_steps: 50
+  sample_size: 4
+  top_k: 16
+  exact_entropy: true
+  position_segments: 3
+  fixed_batch_seed: 42
+  max_overhead_ratio: 0.10
+
+formal:
+  checkpoint_interval_steps: 20
+  validation_interval_steps: 20
+  validation_generations_to_log: 8
+  resume_mode: auto

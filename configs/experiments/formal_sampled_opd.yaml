@@ -1,0 +1,29 @@
+schema_version: 1
+experiment_name: opd-qwen05b-sampled-k1-s42
+
+training:
+  expected_train_rows: 3473
+  epochs: 1
+
+checkpoint_selection:
+  split: validation
+  expected_validation_rows: 1000
+  primary_metric: exact_match
+  mode: max
+  tie_breakers:
+    - format_error_ratio:min
+    - truncated_ratio:min
+    - step:min
+
+final_evaluation:
+  split: test
+  expected_rows: 1319
+  roles:
+    - base
+    - sft
+    - opd
+    - teacher
+  temperature: 0.0
+  do_sample: false
+  max_new_tokens: 512
+  dtype: bfloat16

@@ -119,7 +119,7 @@ def test_full_benchmark_rejects_reordered_test_rows(tmp_path):
             model=ModelSpec("Qwen/fake", REVISION, "teacher"),
             config=BenchmarkConfig(minimum_free_disk_gb=0.000001),
             revision_checker=lambda value: value.revision,
-            gpu_checker=lambda: {},
+            gpu_checker=dict,
             backend_factory=lambda value, config, trust: FakeBackend(value),
         )
 
@@ -137,6 +137,6 @@ def test_full_benchmark_rejects_unrelated_output_files(tmp_path):
             model=ModelSpec("Qwen/fake", REVISION, "teacher"),
             config=BenchmarkConfig(minimum_free_disk_gb=0.000001),
             revision_checker=lambda value: value.revision,
-            gpu_checker=lambda: {},
+            gpu_checker=dict,
             backend_factory=lambda value, config, trust: FakeBackend(value),
         )

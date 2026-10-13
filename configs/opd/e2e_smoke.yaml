@@ -1,0 +1,22 @@
+schema_version: 1
+seed: 42
+
+data:
+  train_count: 32
+  validation_count: 8
+
+rollout:
+  n: 1
+  max_response_length: 128
+
+training:
+  train_batch_size: 4
+  ppo_micro_batch_size_per_gpu: 1
+  phase1_steps: 2
+  final_steps: 5
+  save_freq: 1
+  validation_frequency: 5
+
+diagnostics:
+  interval_steps: 1
+  sample_size: 2

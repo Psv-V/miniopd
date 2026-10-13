@@ -8,9 +8,10 @@ import random
 import re
 import tempfile
 from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any
 
 from miniopd.evaluation.answer_parser import detect_repetition
 from miniopd.evaluation.io import load_evaluation_examples, read_jsonl, write_json

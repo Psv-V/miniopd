@@ -7,9 +7,10 @@ import json
 import math
 import os
 import time
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from miniopd.evaluation.io import read_jsonl, write_json
 from miniopd.evaluation.prompt import build_sft_messages

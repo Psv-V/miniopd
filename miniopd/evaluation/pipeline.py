@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from miniopd.evaluation.answer_parser import ErrorType, evaluate_answer
 from miniopd.evaluation.io import (

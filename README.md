@@ -226,3 +226,204 @@ and semantics for every tensor that must be checked again during verl integratio
 
 This in-process sync test does not claim to validate FSDP-to-vLLM transfer; that
 cross-process GPU check belongs to the next verl integration stage.
+
+## verl sampled-token OPD integration
+
+MiniOPD keeps only the experiment contract, preflight checks, and acceptance
+logic. The trainer remains the official upstream verl implementation; no verl
+source is copied into this repository. The current candidate commit is recorded
+in `configs/verl/upstream_candidate.yaml` and is deliberately marked
+`pending_gpu_smoke`. Full training is refused until that exact commit passes the
+GPU smoke test and the lock is changed to `status: verified` with the same SHA in
+`verified_commit`.
+
+The data-preparation command creates both `opd_train.parquet` and
+`opd_validation.parquet` from the same locked manifest.
+
+On the two-GPU machine, clone and check out the exact verl candidate, download
+the teacher model at its locked revision, and point `STUDENT` at the exported
+cold-start SFT `final_model`. GPU 0 owns the student actor plus its vLLM rollout;
+GPU 1 owns the frozen teacher vLLM scorer.
+
+Run the one-batch acceptance test first:
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+CUDA_VISIBLE_DEVICES=0,1 scripts/run_opd_smoke.sh \
+  --config configs/opd/qwen05b_sampled_k1.yaml \
+  --verl-lock configs/verl/upstream_candidate.yaml \
+  --verl-root /path/to/verl \
+  --student-checkpoint /path/to/sft/final_model \
+  --teacher-model /path/to/Qwen2.5-Math-1.5B-Instruct \
+  --train-data "data/final/gsm8k/$REVISION/opd_train.parquet" \
+  --validation-data "data/final/gsm8k/$REVISION/opd_validation.parquet" \
+  --manifest "data/intermediate/gsm8k/$REVISION/split_manifest.jsonl" \
+  --run-dir results/opd-qwen05b-sampled-k1-smoke-s42
+```
+
+Preflight requires exactly two visible BF16 GPUs, complete local model files,
+identical student/teacher vocabularies and special-token IDs, exact data counts
+and manifest membership, and the exact verl Git commit. The smoke run performs
+one optimizer step and must leave evidence for rollout, teacher scoring,
+backward/update, checkpoint saving, rollout dumping, and both initial and
+post-update actor-to-rollout synchronization. Confirm or rerun its audit with:
+
+```bash
+python -m miniopd.integration check-artifacts --mode smoke \
+  --run-dir results/opd-qwen05b-sampled-k1-smoke-s42
+```
+
+Only after that report passes should the verl lock be marked verified and the
+same arguments be passed to `scripts/run_opd_train.sh`. Full mode uses all 3473
+OPD prompts for one epoch; it never consumes the SFT, validation, or test rows as
+training data.
+
+## OPD training diagnostics
+
+The OPD recipe contains a separate `diagnostics` section. Every-step metrics use
+already available reward, response-mask, loss, timing, correctness, and memory
+values, so they require no additional model forward. They are appended to
+`metrics.jsonl`.
+
+Every 50 steps, a fixed four-example batch is eligible for the heavier
+diagnostic path. It computes student/teacher Top-16 overlap, overlap-token
+advantage, overlap probability mass, exact full-vocabulary entropy, absolute
+entropy gap, and front/middle/back response summaries. These values are appended
+to `diagnostics.jsonl`; `diagnostic_fixed_batch.json` locks the selected sample
+IDs so results remain comparable across checkpoints.
+
+All periodic tensor calculations run under `torch.no_grad()`, return detached
+Python values, and reuse the same response mask as sampled-token OPD. Prompt,
+padding, and post-EOS positions therefore cannot enter a metric. The diagnostic
+record also reports its wall-time overhead and whether it remains below the
+configured 10% budget. These diagnostics are observational only and are never
+added to the policy or distillation loss.
+
+The diagnostic primitives and artifact auditor are implemented locally, but
+the exact callback that exports live verl tensors is intentionally not declared
+complete before the candidate commit passes GPU smoke. Until that adapter emits
+`metrics.jsonl`, `diagnostics.jsonl`, and `tensor_audit.jsonl`, the end-to-end
+audit fails instead of silently accepting incomplete observability. The same
+GPU adapter must persist an explicit per-sample `truncated` flag in validation
+dumps; checkpoint selection refuses to infer missing truncation evidence.
+
+## End-to-end OPD smoke test
+
+The end-to-end smoke test uses a deterministic 32-row training subset and an
+independent eight-row validation subset. It starts a fresh process for two
+optimizer steps, requires `global_step_2`, then starts a second process with
+`resume_mode=resume_path` and continues to step five. The final step runs
+validation and saves `global_step_5`.
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+CUDA_VISIBLE_DEVICES=0,1 scripts/run_opd_e2e_smoke.sh \
+  --config configs/opd/qwen05b_sampled_k1.yaml \
+  --smoke-config configs/opd/e2e_smoke.yaml \
+  --verl-lock configs/verl/upstream_candidate.yaml \
+  --verl-root /path/to/verl \
+  --student-checkpoint /path/to/sft/final_model \
+  --teacher-model /path/to/Qwen2.5-Math-1.5B-Instruct \
+  --train-data "data/final/gsm8k/$REVISION/opd_train.parquet" \
+  --validation-data "data/final/gsm8k/$REVISION/opd_validation.parquet" \
+  --manifest "data/intermediate/gsm8k/$REVISION/split_manifest.jsonl" \
+  --run-dir results/opd-qwen05b-e2e-smoke-s42
+```
+
+Use a new run directory for every attempt. The command exits nonzero if either
+process fails, the explicit resume is not observed, a checkpoint or validation
+artifact is missing, actor-to-rollout synchronization is incomplete, tensor
+shift/mask/no-grad evidence is absent, diagnostics are missing, or a logged
+numeric value contains NaN/Inf. The complete audit is written to
+`e2e_artifact_report.json` and can be rerun without training:
+
+```bash
+python -m miniopd.integration check-e2e \
+  --smoke-config configs/opd/e2e_smoke.yaml \
+  --run-dir results/opd-qwen05b-e2e-smoke-s42
+```
+
+## Formal sampled-token OPD and final report
+
+After the end-to-end smoke test passes, run the existing full launcher with a
+new formal run directory. Full mode consumes all 3473 OPD prompts for one epoch,
+validates and checkpoints every 20 steps, logs eight validation generations,
+and resumes automatically after an interruption. Every attempt is retained in
+`run_history.jsonl`; the latest state is in `run_status.json`.
+
+```bash
+REVISION=740312add88f781978c0658806c59bc2815b9866
+CUDA_VISIBLE_DEVICES=0,1 scripts/run_opd_train.sh \
+  --config configs/opd/qwen05b_sampled_k1.yaml \
+  --verl-lock configs/verl/upstream_candidate.yaml \
+  --verl-root /path/to/verl \
+  --student-checkpoint /path/to/sft/final_model \
+  --teacher-model /path/to/Qwen2.5-Math-1.5B-Instruct \
+  --train-data "data/final/gsm8k/$REVISION/opd_train.parquet" \
+  --validation-data "data/final/gsm8k/$REVISION/opd_validation.parquet" \
+  --manifest "data/intermediate/gsm8k/$REVISION/split_manifest.jsonl" \
+  --run-dir results/opd-qwen05b-sampled-k1-s42
+```
+
+Select a checkpoint before any formal test prediction exists. Selection uses
+validation exact match only, followed by lower format-error ratio, lower
+truncation ratio, and earlier step as deterministic tie-breakers:
+
+```bash
+python -m miniopd.experiments build-validation-metrics \
+  --config configs/experiments/formal_sampled_opd.yaml \
+  --validation-dir results/opd-qwen05b-sampled-k1-s42/validation \
+  --checkpoint-root results/opd-qwen05b-sampled-k1-s42/checkpoints \
+  --output results/opd-qwen05b-sampled-k1-s42/validation_metrics.jsonl
+
+python -m miniopd.experiments select-checkpoint \
+  --config configs/experiments/formal_sampled_opd.yaml \
+  --metrics results/opd-qwen05b-sampled-k1-s42/validation_metrics.jsonl \
+  --checkpoint-root results/opd-qwen05b-sampled-k1-s42/checkpoints \
+  --forbidden-test-root results/final-gsm8k \
+  --output results/opd-qwen05b-sampled-k1-s42/checkpoint_selection.json
+```
+
+After exporting the selected OPD checkpoint to a loadable model directory,
+create the four-model evaluation plan. Base, SFT, OPD, and teacher all use the
+same 1319 test rows, greedy decoding, BF16, and 512 output tokens:
+
+```bash
+python -m miniopd.experiments evaluation-plan \
+  --config configs/experiments/formal_sampled_opd.yaml \
+  --test-data "data/final/gsm8k/$REVISION/evaluation_test.parquet" \
+  --evaluation-config configs/evaluation/gsm8k_greedy.yaml \
+  --selection-report results/opd-qwen05b-sampled-k1-s42/checkpoint_selection.json \
+  --base-model Qwen/Qwen2.5-0.5B-Instruct \
+  --base-revision 7ae557604adf67be50417f59c2c2f167def9a775 \
+  --sft-model /path/to/sft/final_model \
+  --opd-model /path/to/selected-opd/final_model \
+  --teacher-model Qwen/Qwen2.5-Math-1.5B-Instruct \
+  --teacher-revision aafeb0fc6f22cbf0eaeed126eff8be45b0360a35 \
+  --output-root results/final-gsm8k \
+  --output results/final-gsm8k/evaluation_plan.json
+```
+
+Run the four saved commands, then build the final artifact-derived report:
+
+```bash
+python -m miniopd.experiments final-report \
+  --config configs/experiments/formal_sampled_opd.yaml \
+  --selection-report results/opd-qwen05b-sampled-k1-s42/checkpoint_selection.json \
+  --evaluation-plan results/final-gsm8k/evaluation_plan.json \
+  --training-run-dir results/opd-qwen05b-sampled-k1-s42 \
+  --base-dir results/final-gsm8k/base \
+  --sft-dir results/final-gsm8k/sft \
+  --opd-dir results/final-gsm8k/opd \
+  --teacher-dir results/final-gsm8k/teacher \
+  --output reports/final_results.json
+```
+
+The validation builder rescans every saved response with MiniOPD's shared answer
+parser and requires an explicit per-sample truncation flag. It will not silently
+treat missing truncation evidence as zero. The final report recalculates each
+score from all 1319 saved predictions, verifies both the saved evaluation plan
+and shared decoding protocol, and computes SFT gain, additional OPD gain, gap
+recovery, GPU hours, peak memory, three training throughputs, checkpoint size,
+and four-model inference speed. Failed and interrupted attempts remain visible
+in the embedded run history.

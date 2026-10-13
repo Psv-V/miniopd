@@ -11,7 +11,7 @@ from miniopd.data.gsm8k import (
     build_manifest,
     build_sft_records,
     build_teacher_rollout_inputs,
-    build_verl_opd_records,
+    build_verl_prompt_records,
     manifest_jsonl_bytes,
 )
 
@@ -86,7 +86,10 @@ def test_output_formats_share_prompt_and_identity() -> None:
     train, test, manifest, _ = make_manifest_fixture()
     validation = build_evaluation_records(train, test, manifest, split="validation")
     teacher_inputs = build_teacher_rollout_inputs(train, test, manifest)
-    opd = build_verl_opd_records(train, test, manifest)
+    opd = build_verl_prompt_records(train, test, manifest, split="opd_train")
+    verl_validation = build_verl_prompt_records(
+        train, test, manifest, split="validation"
+    )
 
     assert validation[0]["messages"][0] == {
         "role": "system",
@@ -102,6 +105,8 @@ def test_output_formats_share_prompt_and_identity() -> None:
         "extra_info",
     }
     assert opd[0]["extra_info"]["split"] == "opd_train"
+    assert len(verl_validation) == 1
+    assert verl_validation[0]["extra_info"]["split"] == "validation"
 
 
 def test_sft_records_require_one_response_per_teacher_input() -> None:

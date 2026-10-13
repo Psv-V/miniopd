@@ -411,16 +411,18 @@ def build_sft_records(
     return output
 
 
-def build_verl_opd_records(
+def build_verl_prompt_records(
     train_records: Sequence[Mapping[str, Any]],
     test_records: Sequence[Mapping[str, Any]],
     manifest: Sequence[Mapping[str, Any]],
+    *,
+    split: str,
 ) -> list[dict[str, Any]]:
-    """Convert the OPD subset to verl's prompt parquet schema."""
+    """Convert a train-derived split to verl's prompt parquet schema."""
+    if split not in {"opd_train", "validation"}:
+        raise DataValidationError("verl prompt split must be opd_train or validation")
     output = []
-    for row, record in _selected_rows(
-        train_records, test_records, manifest, "opd_train"
-    ):
+    for row, record in _selected_rows(train_records, test_records, manifest, split):
         question = str(record["question"])
         output.append(
             {
@@ -433,7 +435,7 @@ def build_verl_opd_records(
                 },
                 "extra_info": {
                     "sample_id": row["sample_id"],
-                    "split": "opd_train",
+                    "split": split,
                     "original_index": row["original_index"],
                     "question": question,
                     "question_hash": row["question_hash"],
@@ -659,6 +661,7 @@ def prepare_gsm8k(
         "evaluation_test": final_dir / "evaluation_test.parquet",
         "teacher_rollout_input": final_dir / "teacher_rollout_input.parquet",
         "opd_train": final_dir / "opd_train.parquet",
+        "opd_validation": final_dir / "opd_validation.parquet",
         "final_metadata": final_dir / "metadata.json",
     }
     existing = [path for path in paths.values() if path.exists()]
@@ -694,8 +697,16 @@ def prepare_gsm8k(
         paths["teacher_rollout_input"],
     )
     _write_parquet(
-        build_verl_opd_records(train_records, test_records, manifest),
+        build_verl_prompt_records(
+            train_records, test_records, manifest, split="opd_train"
+        ),
         paths["opd_train"],
+    )
+    _write_parquet(
+        build_verl_prompt_records(
+            train_records, test_records, manifest, split="validation"
+        ),
+        paths["opd_validation"],
     )
 
     generated_files = {

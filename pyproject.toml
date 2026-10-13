@@ -49,4 +49,4 @@ line-length = 88
 src = ["miniopd", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["B", "C4", "E", "F", "I", "PIE", "SIM", "UP"]

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from miniopd.evaluation.io import load_evaluation_examples, write_json
 from miniopd.evaluation.pipeline import run_evaluation, score_jsonl

@@ -7,9 +7,10 @@ import json
 import platform
 import random
 import sys
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any
 
 from miniopd.evaluation.io import (
     load_evaluation_examples,

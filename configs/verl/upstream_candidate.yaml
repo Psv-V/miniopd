@@ -1,0 +1,8 @@
+repository: https://github.com/verl-project/verl.git
+candidate_commit: 2035f58dcb06d8cad4caee107b30f4045d724367
+status: pending_gpu_smoke
+verified_commit: null
+queried_at: "2026-10-12"
+note: >-
+  The candidate is allowed for the one-batch smoke test. Mark it verified and
+  copy the same SHA to verified_commit only after the GPU acceptance checks pass.
