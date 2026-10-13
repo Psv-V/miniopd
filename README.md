@@ -156,6 +156,7 @@ REVISION=740312add88f781978c0658806c59bc2815b9866
 python -m miniopd.generation \
   --config configs/generation/coldstart_teacher_qwen15b.yaml \
   --model-config configs/models/qwen2.5-math-1.5b-instruct.yaml \
+  --model-path /path/to/verified/Qwen2.5-Math-1.5B-Instruct \
   --input "data/final/gsm8k/$REVISION/teacher_rollout_input.parquet" \
   --output-dir results/coldstart-qwen15bmath-s42
 ```

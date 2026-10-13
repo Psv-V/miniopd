@@ -233,27 +233,34 @@ def _write_yaml(path: Path, value: Mapping[str, Any]) -> None:
 def _create_backend(
     model_id: str,
     model_revision: str,
+    model_path: Path | None,
     config: ColdStartConfig,
     trust_remote_code: bool,
 ) -> GenerationBackend:
+    load_source = str(model_path) if model_path is not None else model_id
+    load_revision = None if model_path is not None else model_revision
     if config.backend == "transformers":
         from miniopd.evaluation.backends import TransformersBackend
 
-        return TransformersBackend(
-            model_id,
-            revision=model_revision,
+        backend = TransformersBackend(
+            load_source,
+            revision=load_revision,
             dtype=config.dtype,
             device_map="auto",
             trust_remote_code=trust_remote_code,
         )
-    from miniopd.evaluation.backends import VLLMBackend
+    else:
+        from miniopd.evaluation.backends import VLLMBackend
 
-    return VLLMBackend(
-        model_id,
-        revision=model_revision,
-        dtype=config.dtype,
-        trust_remote_code=trust_remote_code,
-    )
+        backend = VLLMBackend(
+            load_source,
+            revision=load_revision,
+            dtype=config.dtype,
+            trust_remote_code=trust_remote_code,
+        )
+    backend.model_id = model_id
+    backend.model_revision = model_revision
+    return backend
 
 
 def run_coldstart_generation(
@@ -262,14 +269,21 @@ def run_coldstart_generation(
     output_dir: Path,
     model_id: str,
     model_revision: str,
+    model_path: Path | None = None,
     config: ColdStartConfig,
     trust_remote_code: bool = False,
     backend_factory: Callable[
-        [str, str, ColdStartConfig, bool], GenerationBackend
+        [str, str, Path | None, ColdStartConfig, bool], GenerationBackend
     ] = _create_backend,
 ) -> dict[str, Any]:
     if not _REVISION_RE.fullmatch(model_revision):
         raise ValueError("teacher revision must be a full 40-character commit SHA")
+    if model_path is not None:
+        model_path = model_path.resolve()
+        if not model_path.is_dir():
+            raise ValueError(
+                f"local teacher model path is not a directory: {model_path}"
+            )
     examples = load_evaluation_examples(input_path)
     validate_coldstart_inputs(examples, config.expected_inputs)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -284,10 +298,13 @@ def run_coldstart_generation(
         "input": str(input_path.resolve()),
         "model_id": model_id,
         "model_revision": model_revision,
+        "model_path": str(model_path) if model_path is not None else None,
         "scope": "gsm8k_train_fixed_coldstart_3000",
     }
     _write_yaml(output_dir / "resolved_config.yaml", resolved)
-    backend = backend_factory(model_id, model_revision, config, trust_remote_code)
+    backend = backend_factory(
+        model_id, model_revision, model_path, config, trust_remote_code
+    )
     raw_path = output_dir / "raw_generations.jsonl"
     run_evaluation(examples, backend, raw_path, config=config.generation_config())
     records = read_jsonl(raw_path)

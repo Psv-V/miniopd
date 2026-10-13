@@ -1,5 +1,7 @@
+import miniopd.evaluation.backends as evaluation_backends
 from miniopd.generation.coldstart import (
     ColdStartConfig,
+    _create_backend,
     build_sft_rows,
     filter_reason,
     summarize_filter,
@@ -59,3 +61,29 @@ def test_filter_summary_preserves_independent_diagnostics():
     assert summary["retained_count"] == 1
     assert summary["truncated_count"] == 1
     assert summary["format_error_count"] == 1
+
+
+def test_local_model_path_preserves_canonical_provenance(tmp_path, monkeypatch):
+    model_path = tmp_path / "teacher"
+    model_path.mkdir()
+    captured = {}
+
+    class FakeBackend:
+        def __init__(self, model_id, *, revision, **kwargs):
+            captured.update(model_id=model_id, revision=revision, kwargs=kwargs)
+            self.model_id = model_id
+            self.model_revision = revision
+
+    monkeypatch.setattr(evaluation_backends, "VLLMBackend", FakeBackend)
+    backend = _create_backend(
+        "Qwen/teacher",
+        "a" * 40,
+        model_path,
+        ColdStartConfig(),
+        False,
+    )
+
+    assert captured["model_id"] == str(model_path)
+    assert captured["revision"] is None
+    assert backend.model_id == "Qwen/teacher"
+    assert backend.model_revision == "a" * 40

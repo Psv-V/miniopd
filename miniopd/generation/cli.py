@@ -27,6 +27,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--model-config", type=Path, required=True)
+    parser.add_argument(
+        "--model-path",
+        type=Path,
+        help=(
+            "load weights from a verified local snapshot while preserving "
+            "model provenance"
+        ),
+    )
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--trust-remote-code", action="store_true")
     return parser
@@ -42,6 +50,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         output_dir=args.output_dir,
         model_id=str(model["model_id"]),
         model_revision=str(model["revision"]),
+        model_path=args.model_path,
         config=ColdStartConfig.from_mapping(_load_yaml(args.config)),
         trust_remote_code=args.trust_remote_code,
     )
