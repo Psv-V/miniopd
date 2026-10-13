@@ -362,7 +362,7 @@ def run_sft_training(
     model = AutoModelForCausalLM.from_pretrained(
         load_source,
         revision=load_revision,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         trust_remote_code=trust_remote_code,
     )
     model.config.use_cache = False
@@ -443,17 +443,21 @@ def run_sft_training(
     torch.cuda.empty_cache()
 
     reloaded = AutoModelForCausalLM.from_pretrained(
-        final_dir, torch_dtype=torch.bfloat16, trust_remote_code=trust_remote_code
+        final_dir, dtype=torch.bfloat16, trust_remote_code=trust_remote_code
     ).cuda()
     reloaded.eval()
     prompt = train_rows[0]["messages"][:2]
     inputs = tokenizer.apply_chat_template(
-        prompt, tokenize=True, add_generation_prompt=True, return_tensors="pt"
+        prompt,
+        tokenize=True,
+        add_generation_prompt=True,
+        return_tensors="pt",
+        return_dict=True,
     ).to(reloaded.device)
     with torch.inference_mode():
-        generated = reloaded.generate(inputs, max_new_tokens=32)
+        generated = reloaded.generate(**inputs, max_new_tokens=32)
     verification = tokenizer.decode(
-        generated[0, inputs.shape[1] :], skip_special_tokens=True
+        generated[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True
     )
     if not verification.strip():
         raise RuntimeError(
