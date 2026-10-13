@@ -47,6 +47,8 @@ def validate_formal_config(config: Mapping[str, Any]) -> None:
         raise ExperimentError("final evaluation max_new_tokens must be 512")
     if evaluation.get("dtype") != "bfloat16":
         raise ExperimentError("final evaluation must use BF16")
+    if evaluation.get("seed") != 42:
+        raise ExperimentError("final evaluation seed must be 42")
 
 
 def _formal_protocol(config: Mapping[str, Any]) -> dict[str, Any]:
@@ -59,6 +61,7 @@ def _formal_protocol(config: Mapping[str, Any]) -> dict[str, Any]:
         "do_sample": evaluation["do_sample"],
         "max_new_tokens": evaluation["max_new_tokens"],
         "batch_size": 8,
+        "seed": evaluation["seed"],
     }
 
 
@@ -380,6 +383,7 @@ def _validate_formal_evaluation(
                 "max_new_tokens",
                 "batch_size",
                 "dtype",
+                "seed",
             )
         ):
             raise ExperimentError(f"{role} did not use the formal greedy BF16 config")

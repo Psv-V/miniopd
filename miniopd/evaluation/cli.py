@@ -92,6 +92,7 @@ def _run(args: argparse.Namespace) -> None:
         "max_new_tokens",
         "batch_size",
         "dtype",
+        "seed",
     }
     unexpected = set(settings).difference(allowed)
     if unexpected:
@@ -115,6 +116,7 @@ def _run(args: argparse.Namespace) -> None:
             else int(settings.get("batch_size", 8))
         ),
         dtype=dtype,
+        seed=int(settings.get("seed", 42)),
     )
     if backend_name == "transformers":
         from miniopd.evaluation.backends import TransformersBackend
@@ -133,6 +135,7 @@ def _run(args: argparse.Namespace) -> None:
             args.model,
             revision=args.model_revision,
             dtype=dtype,
+            seed=config.seed if config.seed is not None else 42,
             trust_remote_code=args.trust_remote_code,
         )
     summary = run_evaluation(

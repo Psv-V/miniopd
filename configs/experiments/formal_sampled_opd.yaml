@@ -27,3 +27,4 @@ final_evaluation:
   do_sample: false
   max_new_tokens: 512
   dtype: bfloat16
+  seed: 42

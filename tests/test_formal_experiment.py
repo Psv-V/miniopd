@@ -211,7 +211,7 @@ def _write_evaluation(directory: Path, role: str, correct: int) -> None:
         "max_new_tokens": 512,
         "batch_size": 8,
         "dtype": "bfloat16",
-        "seed": None,
+        "seed": 42,
     }
     rows = [
         {

@@ -13,7 +13,7 @@ def test_load_formal_evaluation_config(tmp_path):
     path = tmp_path / "evaluation.yaml"
     path.write_text(
         "backend: vllm\ntemperature: 0\ndo_sample: false\n"
-        "max_new_tokens: 512\nbatch_size: 8\n",
+        "max_new_tokens: 512\nbatch_size: 8\nseed: 42\n",
         encoding="utf-8",
     )
     assert _load_yaml(path) == {
@@ -22,6 +22,7 @@ def test_load_formal_evaluation_config(tmp_path):
         "do_sample": False,
         "max_new_tokens": 512,
         "batch_size": 8,
+        "seed": 42,
     }
 
 

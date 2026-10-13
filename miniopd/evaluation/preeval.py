@@ -38,6 +38,7 @@ class PreEvaluationConfig:
     do_sample: bool = False
     max_new_tokens: int = 512
     batch_size: int = 8
+    seed: int = 42
     offset: int = 0
     limit: int = 100
     review_seed: int = 42
@@ -72,6 +73,7 @@ class PreEvaluationConfig:
             max_new_tokens=self.max_new_tokens,
             batch_size=self.batch_size,
             dtype=self.dtype,
+            seed=self.seed,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -145,6 +147,7 @@ def _create_backend(
     return VLLMBackend(
         model_id,
         dtype=config.dtype,
+        seed=config.seed,
         trust_remote_code=trust_remote_code,
     )
 

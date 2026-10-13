@@ -82,6 +82,7 @@ class BenchmarkConfig:
     do_sample: bool = False
     max_new_tokens: int = 512
     batch_size: int = 8
+    seed: int = 42
     expected_test_size: int = GSM8K_TEST_SIZE
     minimum_free_disk_gb: float = 10.0
     prompt_debug_samples: int = 5
@@ -119,6 +120,7 @@ class BenchmarkConfig:
             max_new_tokens=self.max_new_tokens,
             batch_size=self.batch_size,
             dtype=self.dtype,
+            seed=self.seed,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -238,6 +240,7 @@ def _create_backend(
         model.model_id,
         revision=model.revision,
         dtype=config.dtype,
+        seed=config.seed,
         trust_remote_code=trust_remote_code,
     )
 

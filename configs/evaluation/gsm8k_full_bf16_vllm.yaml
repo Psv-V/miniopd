@@ -5,6 +5,7 @@ top_p: 1.0
 do_sample: false
 max_new_tokens: 512
 batch_size: 8
+seed: 42
 expected_test_size: 1319
 minimum_free_disk_gb: 10
 prompt_debug_samples: 5

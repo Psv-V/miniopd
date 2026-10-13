@@ -5,6 +5,7 @@ top_p: 1.0
 do_sample: false
 max_new_tokens: 512
 batch_size: 8
+seed: 42
 offset: 0
 limit: 100
 review_seed: 42

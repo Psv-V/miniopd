@@ -56,6 +56,11 @@ reports and the code or configuration needed to reproduce them are versioned.
 Formal evaluation uses greedy decoding from
 `configs/evaluation/gsm8k_greedy.yaml`. Transformers and vLLM write the same
 resumable JSONL schema and use the same answer parser and metric aggregation.
+All vLLM evaluation configs use `seed: 42`. The backend also enforces
+`VLLM_ENABLE_V1_MULTIPROCESSING=0` before importing vLLM so V1 offline
+scheduling is deterministic on the same hardware and software stack. A
+conflicting environment override fails closed instead of silently producing a
+non-reproducible formal run.
 
 ```bash
 python -m miniopd.evaluation run \
