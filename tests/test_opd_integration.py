@@ -60,7 +60,12 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["trainer.total_training_steps"] == "1"
     assert overrides["trainer.n_gpus_per_node"] == "1"
     assert overrides["distillation.n_gpus_per_node"] == "1"
-    assert overrides["reward_model.reward_manager"] == "miniopd"
+    assert overrides["reward_model.reward_manager"] == "MiniOPDRewardManager"
+    assert overrides["reward_model.reward_loop_source"] == "importlib"
+    assert overrides["reward_model.reward_loop_module_path"].endswith(
+        "/miniopd/integration/reward_adapter.py"
+    )
+    assert overrides["reward_model.reward_loop_class_name"] == "MiniOPDRewardManager"
     assert overrides["custom_reward_function.name"] == "compute_score"
     assert overrides["custom_reward_function.path"].endswith(
         "/miniopd/integration/reward_adapter.py"

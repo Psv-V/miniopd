@@ -367,12 +367,13 @@ all four checkpoint-selection candidates, logs eight validation generations,
 and resumes automatically after an interruption. Every attempt is retained in
 `run_history.jsonl`; the latest state is in `run_status.json`.
 
-MiniOPD registers a small reward-manager adapter through verl's official
-custom-reward extension points. The adapter delegates scoring to verl's default
-dataset scorer unchanged, while deriving an explicit `truncated` boolean from
-the generated response tokens, terminal EOS, and response attention mask. This
-keeps checkpoint selection auditable without modifying the locked verl source
-or guessing truncation from decoded text.
+MiniOPD loads a small reward-manager adapter through verl v0.8's official
+`importlib` reward-loop extension point. The adapter subclasses the experimental
+naive manager and delegates scoring to verl's default dataset scorer unchanged,
+while deriving an explicit `truncated` boolean from the generated response
+tokens, terminal EOS, and response attention mask. This keeps checkpoint
+selection auditable without modifying the locked verl source or guessing
+truncation from decoded text.
 
 ```bash
 REVISION=740312add88f781978c0658806c59bc2815b9866

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from verl.experimental.reward_loop.reward_manager.naive import NaiveRewardManager
 from verl.utils.reward_score import default_compute_score
-from verl.workers.reward_manager import NaiveRewardManager, register
 
 from miniopd.integration.validation_adapter import response_truncated_flags
 
@@ -15,22 +15,20 @@ def compute_score(*args: Any, **kwargs: Any) -> Any:
     return default_compute_score(*args, **kwargs)
 
 
-@register("miniopd")
 class MiniOPDRewardManager(NaiveRewardManager):
-    """Add token-derived truncation flags without changing task rewards."""
+    """verl v0.8 reward-loop adapter with explicit truncation evidence."""
 
-    def __call__(self, data: Any, return_dict: bool = False) -> Any:
-        result = super().__call__(data, return_dict=return_dict)
-        if not return_dict:
-            return result
+    async def run_single(self, data: Any) -> dict[str, Any]:
+        result = await super().run_single(data)
+        final_sequence = data[-1:]
         flags = response_truncated_flags(
-            data.batch["responses"],
-            data.batch["attention_mask"],
-            prompt_width=data.batch["prompts"].shape[-1],
+            final_sequence.batch["responses"],
+            final_sequence.batch["attention_mask"],
+            prompt_width=final_sequence.batch["prompts"].shape[-1],
             eos_token_id=self.tokenizer.eos_token_id,
         )
         extra_info = result["reward_extra_info"]
         if "truncated" in extra_info:
             raise ValueError("reward metadata already contains truncated")
-        extra_info["truncated"] = flags
+        extra_info["truncated"] = flags[0]
         return result

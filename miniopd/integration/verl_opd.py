@@ -390,7 +390,10 @@ def build_verl_command(
         ("trainer.val_before_train", False),
         ("custom_reward_function.path", reward_adapter),
         ("custom_reward_function.name", "compute_score"),
-        ("reward_model.reward_manager", "miniopd"),
+        ("reward_model.reward_manager", "MiniOPDRewardManager"),
+        ("reward_model.reward_loop_source", "importlib"),
+        ("reward_model.reward_loop_module_path", reward_adapter),
+        ("reward_model.reward_loop_class_name", "MiniOPDRewardManager"),
         (
             "trainer.test_freq",
             -1 if mode == "smoke" else formal["validation_interval_steps"],
