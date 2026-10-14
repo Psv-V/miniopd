@@ -314,6 +314,7 @@ def build_verl_command(
     formal = _nested(config, "formal")
     student = _nested(config, "student")
     reward_adapter = Path(__file__).with_name("reward_adapter.py").resolve()
+    reward_score = Path(__file__).with_name("reward_score.py").resolve()
     batch_size = (
         smoke["train_batch_size"] if mode == "smoke" else actor["full_train_batch_size"]
     )
@@ -388,7 +389,7 @@ def build_verl_command(
         ("trainer.rollout_data_dir", run_dir / "rollouts"),
         ("trainer.logger", "[console]"),
         ("trainer.val_before_train", False),
-        ("custom_reward_function.path", reward_adapter),
+        ("custom_reward_function.path", reward_score),
         ("custom_reward_function.name", "compute_score"),
         ("reward_model.reward_manager", "MiniOPDRewardManager"),
         ("reward_model.reward_loop_source", "importlib"),

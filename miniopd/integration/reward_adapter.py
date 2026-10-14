@@ -5,14 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from verl.experimental.reward_loop.reward_manager.naive import NaiveRewardManager
-from verl.utils.reward_score import default_compute_score
 
 from miniopd.integration.validation_adapter import response_truncated_flags
-
-
-def compute_score(*args: Any, **kwargs: Any) -> Any:
-    """Preserve upstream verl's default dataset-specific reward function."""
-    return default_compute_score(*args, **kwargs)
 
 
 class MiniOPDRewardManager(NaiveRewardManager):

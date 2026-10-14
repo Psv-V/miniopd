@@ -369,11 +369,13 @@ and resumes automatically after an interruption. Every attempt is retained in
 
 MiniOPD loads a small reward-manager adapter through verl v0.8's official
 `importlib` reward-loop extension point. The adapter subclasses the experimental
-naive manager and delegates scoring to verl's default dataset scorer unchanged,
-while deriving an explicit `truncated` boolean from the generated response
-tokens, terminal EOS, and response attention mask. This keeps checkpoint
-selection auditable without modifying the locked verl source or guessing
-truncation from decoded text.
+naive manager and derives an explicit `truncated` boolean from the generated
+response tokens, terminal EOS, and response attention mask. Its task-score
+callback uses MiniOPD's shared boxed-answer parser, so rollout and validation
+accuracy use the same semantics as checkpoint selection and final evaluation.
+Task rewards remain excluded from the OPD loss. This keeps checkpoint selection
+auditable without modifying the locked verl source or guessing truncation from
+decoded text.
 
 ```bash
 REVISION=740312add88f781978c0658806c59bc2815b9866

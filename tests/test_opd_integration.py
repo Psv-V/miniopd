@@ -68,7 +68,7 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["reward_model.reward_loop_class_name"] == "MiniOPDRewardManager"
     assert overrides["custom_reward_function.name"] == "compute_score"
     assert overrides["custom_reward_function.path"].endswith(
-        "/miniopd/integration/reward_adapter.py"
+        "/miniopd/integration/reward_score.py"
     )
 
 
