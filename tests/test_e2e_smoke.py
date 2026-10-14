@@ -81,9 +81,11 @@ def test_e2e_commands_train_two_steps_then_explicitly_resume_to_five(
     assert first["actor_rollout_ref.rollout.max_model_len"] == "385"
     assert first["actor_rollout_ref.rollout.agent.num_workers"] == "4"
     assert first["trainer.total_training_steps"] == "2"
+    assert first["trainer.save_freq"] == "5"
     assert first["trainer.resume_mode"] == "disable"
     assert first["trainer.test_freq"] == "-1"
     assert second["trainer.total_training_steps"] == "5"
+    assert second["trainer.save_freq"] == "5"
     assert second["trainer.resume_mode"] == "resume_path"
     assert "global_step_2" in second["trainer.resume_from_path"]
     assert second["trainer.test_freq"] == "5"
