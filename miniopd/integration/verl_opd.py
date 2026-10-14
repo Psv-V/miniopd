@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import subprocess
@@ -85,6 +86,21 @@ def validate_recipe(config: Mapping[str, Any]) -> None:
     ):
         raise IntegrationError(
             "formal validation and checkpoint intervals must be identical"
+        )
+    train_count = int(_nested(config, "data", "train_count"))
+    train_batch_size = int(_nested(config, "actor", "full_train_batch_size"))
+    if train_count % train_batch_size:
+        raise IntegrationError(
+            "formal train count must be divisible by the batch size because "
+            "verl drops the final incomplete batch"
+        )
+    total_steps = train_count // train_batch_size
+    interval = int(formal["checkpoint_interval_steps"])
+    candidate_checkpoints = math.ceil(total_steps / interval)
+    max_checkpoints = int(formal.get("max_actor_checkpoints_to_keep", 0))
+    if max_checkpoints < candidate_checkpoints:
+        raise IntegrationError(
+            "formal checkpoint retention would delete a validation candidate"
         )
 
 
@@ -297,6 +313,7 @@ def build_verl_command(
     smoke = _nested(config, "smoke")
     formal = _nested(config, "formal")
     student = _nested(config, "student")
+    reward_adapter = Path(__file__).with_name("reward_adapter.py").resolve()
     batch_size = (
         smoke["train_batch_size"] if mode == "smoke" else actor["full_train_batch_size"]
     )
@@ -371,6 +388,9 @@ def build_verl_command(
         ("trainer.rollout_data_dir", run_dir / "rollouts"),
         ("trainer.logger", "[console]"),
         ("trainer.val_before_train", False),
+        ("custom_reward_function.path", reward_adapter),
+        ("custom_reward_function.name", "compute_score"),
+        ("reward_model.reward_manager", "miniopd"),
         (
             "trainer.test_freq",
             -1 if mode == "smoke" else formal["validation_interval_steps"],
@@ -435,6 +455,13 @@ def build_verl_command(
     ]
     if mode == "smoke":
         values.append(("trainer.total_training_steps", smoke["total_training_steps"]))
+    else:
+        values.append(
+            (
+                "trainer.max_actor_ckpt_to_keep",
+                formal["max_actor_checkpoints_to_keep"],
+            )
+        )
     return [
         sys.executable,
         "-m",

@@ -359,10 +359,20 @@ python -m miniopd.integration check-e2e \
 ## Formal sampled-token OPD and final report
 
 After the end-to-end smoke test passes, run the existing full launcher with a
-new formal run directory. Full mode consumes all 3473 OPD prompts for one epoch,
-validates and checkpoints every 20 steps, logs eight validation generations,
+new formal run directory. Full mode uses a prompt batch of 23 because
+`3473 = 23 * 151` and upstream verl drops an incomplete final training batch.
+It therefore consumes every fixed OPD prompt exactly once in one epoch. It
+validates and checkpoints at steps 40, 80, 120, and the final step 151, retains
+all four checkpoint-selection candidates, logs eight validation generations,
 and resumes automatically after an interruption. Every attempt is retained in
 `run_history.jsonl`; the latest state is in `run_status.json`.
+
+MiniOPD registers a small reward-manager adapter through verl's official
+custom-reward extension points. The adapter delegates scoring to verl's default
+dataset scorer unchanged, while deriving an explicit `truncated` boolean from
+the generated response tokens, terminal EOS, and response attention mask. This
+keeps checkpoint selection auditable without modifying the locked verl source
+or guessing truncation from decoded text.
 
 ```bash
 REVISION=740312add88f781978c0658806c59bc2815b9866

@@ -125,14 +125,15 @@ def test_formal_command_uses_full_epoch_validation_checkpoint_and_resume(
 
     assert overrides["trainer.total_epochs"] == "1"
     assert "trainer.total_training_steps" not in overrides
-    assert overrides["trainer.save_freq"] == "20"
-    assert overrides["trainer.test_freq"] == "20"
+    assert overrides["trainer.save_freq"] == "40"
+    assert overrides["trainer.test_freq"] == "40"
+    assert overrides["trainer.max_actor_ckpt_to_keep"] == "4"
     assert overrides["trainer.resume_mode"] == "auto"
     assert overrides["trainer.log_val_generations"] == "8"
-    assert overrides["data.train_batch_size"] == "32"
-    assert overrides["actor_rollout_ref.actor.ppo_mini_batch_size"] == "32"
+    assert overrides["data.train_batch_size"] == "23"
+    assert overrides["actor_rollout_ref.actor.ppo_mini_batch_size"] == "23"
     assert overrides["actor_rollout_ref.rollout.max_model_len"] == "769"
-    assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "8"
+    assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "2"
 
 
 def test_checkpoint_selection_uses_validation_and_deterministic_tie_breaks(

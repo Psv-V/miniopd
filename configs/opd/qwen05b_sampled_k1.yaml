@@ -40,7 +40,9 @@ actor:
   learning_rate: 0.000001
   grad_clip: 1.0
   epochs: 1
-  full_train_batch_size: 32
+  # 3473 = 23 * 151. verl drops an incomplete final train batch, so this
+  # deliberately covers every fixed OPD prompt exactly once.
+  full_train_batch_size: 23
   ppo_micro_batch_size_per_gpu: 1
   strategy: fsdp2
 
@@ -61,7 +63,7 @@ smoke:
 
 diagnostics:
   enabled: true
-  interval_steps: 50
+  interval_steps: 40
   sample_size: 4
   top_k: 16
   exact_entropy: true
@@ -70,8 +72,9 @@ diagnostics:
   max_overhead_ratio: 0.10
 
 formal:
-  agent_loop_num_workers: 8
-  checkpoint_interval_steps: 20
-  validation_interval_steps: 20
+  agent_loop_num_workers: 2
+  checkpoint_interval_steps: 40
+  validation_interval_steps: 40
+  max_actor_checkpoints_to_keep: 4
   validation_generations_to_log: 8
   resume_mode: auto

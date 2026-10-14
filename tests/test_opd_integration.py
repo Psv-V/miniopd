@@ -60,6 +60,33 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["trainer.total_training_steps"] == "1"
     assert overrides["trainer.n_gpus_per_node"] == "1"
     assert overrides["distillation.n_gpus_per_node"] == "1"
+    assert overrides["reward_model.reward_manager"] == "miniopd"
+    assert overrides["custom_reward_function.name"] == "compute_score"
+    assert overrides["custom_reward_function.path"].endswith(
+        "/miniopd/integration/reward_adapter.py"
+    )
+
+
+def test_full_command_covers_every_prompt_and_retains_candidates(
+    tmp_path: Path,
+) -> None:
+    config = load_yaml(CONFIG)
+    command = build_verl_command(
+        config,
+        mode="full",
+        student_checkpoint=tmp_path / "student",
+        teacher_model=tmp_path / "teacher",
+        train_data=tmp_path / "train.parquet",
+        validation_data=tmp_path / "validation.parquet",
+        run_dir=tmp_path / "run",
+    )
+    overrides = _overrides(command)
+
+    assert overrides["data.train_batch_size"] == "23"
+    assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "2"
+    assert overrides["trainer.save_freq"] == "40"
+    assert overrides["trainer.test_freq"] == "40"
+    assert overrides["trainer.max_actor_ckpt_to_keep"] == "4"
 
 
 def test_recipe_rejects_uneven_agent_loop_chunks(tmp_path: Path) -> None:
