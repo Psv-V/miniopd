@@ -39,6 +39,10 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["actor_rollout_ref.rollout.n"] == "2"
     assert overrides["actor_rollout_ref.rollout.temperature"] == "1.0"
     assert overrides["actor_rollout_ref.rollout.top_p"] == "1.0"
+    log_prob_micro_batch = overrides[
+        "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu"
+    ]
+    assert log_prob_micro_batch == "1"
     assert overrides["distillation.distillation_loss.loss_mode"] == "k1"
     assert overrides["distillation.distillation_loss.use_policy_gradient"] == "True"
     assert overrides["distillation.distillation_loss.use_task_rewards"] == "False"

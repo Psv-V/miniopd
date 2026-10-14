@@ -24,6 +24,7 @@ rollout:
   dtype: bfloat16
   tensor_model_parallel_size: 1
   gpu_memory_utilization: 0.45
+  log_prob_micro_batch_size_per_gpu: 1
 
 distillation:
   loss_mode: k1

@@ -49,6 +49,7 @@ def validate_recipe(config: Mapping[str, Any]) -> None:
         ("rollout", "top_p"): 1.0,
         ("rollout", "max_prompt_length"): 256,
         ("rollout", "max_response_length"): 512,
+        ("rollout", "log_prob_micro_batch_size_per_gpu"): 1,
         ("teacher", "temperature"): 1.0,
         ("distillation", "loss_mode"): "k1",
         ("distillation", "use_policy_gradient"): True,
@@ -334,6 +335,10 @@ def build_verl_command(
             rollout["gpu_memory_utilization"],
         ),
         ("actor_rollout_ref.rollout.calculate_log_probs", True),
+        (
+            "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu",
+            rollout["log_prob_micro_batch_size_per_gpu"],
+        ),
         ("trainer.n_gpus_per_node", resources["trainer_gpus_per_node"]),
         ("trainer.nnodes", resources["nnodes"]),
         ("trainer.total_epochs", actor["epochs"]),
