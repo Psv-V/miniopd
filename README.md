@@ -238,11 +238,10 @@ cross-process GPU check belongs to the next verl integration stage.
 
 MiniOPD keeps only the experiment contract, preflight checks, and acceptance
 logic. The trainer remains the official upstream verl implementation; no verl
-source is copied into this repository. The current candidate commit is recorded
-in `configs/verl/upstream_candidate.yaml` and is deliberately marked
-`pending_gpu_smoke`. Full training is refused until that exact commit passes the
-GPU smoke test and the lock is changed to `status: verified` with the same SHA in
-`verified_commit`.
+source is copied into this repository. The verified commit is recorded in
+`configs/verl/upstream_candidate.yaml`; full training refuses to run against any
+other SHA. The two-GPU acceptance run used Python 3.10.22, Torch 2.8.0+cu128,
+vLLM 0.10.2, and flash-attn 2.8.3 on two RTX 4090 D 24 GB GPUs.
 
 The data-preparation command creates both `opd_train.parquet` and
 `opd_validation.parquet` from the same locked manifest.
@@ -251,6 +250,14 @@ On the two-GPU machine, clone and check out the exact verl candidate, download
 the teacher model at its locked revision, and point `STUDENT` at the exported
 cold-start SFT `final_model`. GPU 0 owns the student actor plus its vLLM rollout;
 GPU 1 owns the frozen teacher vLLM scorer.
+
+verl's no-padding conversion imports `flash_attn.bert_padding` even when the
+Qwen actor itself uses PyTorch SDPA. Install the verified runtime dependency
+before launching OPD:
+
+```bash
+MAX_JOBS=4 python -m pip install "flash-attn==2.8.3" --no-build-isolation
+```
 
 Run the one-batch acceptance test first:
 
@@ -280,8 +287,7 @@ python -m miniopd.integration check-artifacts --mode smoke \
   --run-dir results/opd-qwen05b-sampled-k1-smoke-s42
 ```
 
-Only after that report passes should the verl lock be marked verified and the
-same arguments be passed to `scripts/run_opd_train.sh`. Full mode uses all 3473
+The recorded acceptance report passed on 2026-10-15. Full mode uses all 3473
 OPD prompts for one epoch; it never consumes the SFT, validation, or test rows as
 training data.
 

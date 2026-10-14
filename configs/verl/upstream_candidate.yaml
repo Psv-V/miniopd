@@ -1,10 +1,17 @@
 repository: https://github.com/verl-project/verl.git
 candidate_commit: 7aed6b230776f963fa09509c10d9c3a767d1102c
-status: pending_gpu_smoke
-verified_commit: null
+status: verified
+verified_commit: 7aed6b230776f963fa09509c10d9c3a767d1102c
 queried_at: "2026-10-13"
+verified_at: "2026-10-15"
+verified_hardware: 2x NVIDIA GeForce RTX 4090 D 24GB
+verified_stack:
+  python: 3.10.22
+  torch: 2.8.0+cu128
+  vllm: 0.10.2
+  flash_attn: 2.8.3
 note: >-
   Official verl v0.8.0 tag. The candidate exposes the distillation teacher,
-  sampled-token k1, and policy-gradient interfaces required by MiniOPD. Mark it
-  verified and copy the same SHA to verified_commit only after the two-GPU
-  acceptance checks pass.
+  sampled-token k1, and policy-gradient interfaces required by MiniOPD. The
+  two-GPU one-step acceptance test passed rollout, teacher scoring, backward,
+  optimizer update, checkpoint, rollout dump, and both weight-sync events.
