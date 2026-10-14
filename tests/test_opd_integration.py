@@ -44,6 +44,8 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["distillation.distillation_loss.use_task_rewards"] == "False"
     assert overrides["actor_rollout_ref.actor.optim.lr"] == "1e-06"
     assert overrides["actor_rollout_ref.actor.grad_clip"] == "1.0"
+    assert overrides["data.train_batch_size"] == "2"
+    assert overrides["actor_rollout_ref.actor.ppo_mini_batch_size"] == "2"
     assert overrides["trainer.total_training_steps"] == "1"
     assert overrides["trainer.n_gpus_per_node"] == "1"
     assert overrides["distillation.n_gpus_per_node"] == "1"

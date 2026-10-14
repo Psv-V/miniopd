@@ -296,7 +296,9 @@ def build_verl_command(
     batch_size = (
         smoke["train_batch_size"] if mode == "smoke" else actor["full_train_batch_size"]
     )
-    mini_batch = int(batch_size) * int(rollout["n"])
+    # verl validates PPO mini-batch size against the prompt batch before
+    # rollout.n expands each prompt into multiple trajectories.
+    mini_batch = int(batch_size)
     values: list[tuple[str, Any]] = [
         ("algorithm.adv_estimator", "grpo"),
         ("algorithm.use_kl_in_reward", False),
