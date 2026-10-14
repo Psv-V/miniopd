@@ -9,6 +9,8 @@ data:
 student:
   model_id: Qwen/Qwen2.5-0.5B-Instruct
   base_revision: 7ae557604adf67be50417f59c2c2f167def9a775
+  attention_implementation: sdpa
+  use_remove_padding: false
 
 teacher:
   model_id: Qwen/Qwen2.5-Math-1.5B-Instruct

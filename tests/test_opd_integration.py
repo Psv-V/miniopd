@@ -36,6 +36,11 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     overrides = _overrides(command)
 
     assert command[1:3] == ["-m", "verl.trainer.main_ppo"]
+    assert overrides["actor_rollout_ref.model.use_remove_padding"] == "False"
+    assert (
+        overrides["+actor_rollout_ref.model.override_config.attn_implementation"]
+        == "sdpa"
+    )
     assert overrides["actor_rollout_ref.rollout.n"] == "2"
     assert overrides["actor_rollout_ref.rollout.temperature"] == "1.0"
     assert overrides["actor_rollout_ref.rollout.top_p"] == "1.0"

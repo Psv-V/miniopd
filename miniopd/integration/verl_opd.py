@@ -50,6 +50,8 @@ def validate_recipe(config: Mapping[str, Any]) -> None:
         ("rollout", "max_prompt_length"): 256,
         ("rollout", "max_response_length"): 512,
         ("rollout", "log_prob_micro_batch_size_per_gpu"): 1,
+        ("student", "attention_implementation"): "sdpa",
+        ("student", "use_remove_padding"): False,
         ("teacher", "temperature"): 1.0,
         ("distillation", "loss_mode"): "k1",
         ("distillation", "use_policy_gradient"): True,
@@ -294,6 +296,7 @@ def build_verl_command(
     resources = _nested(config, "resources")
     smoke = _nested(config, "smoke")
     formal = _nested(config, "formal")
+    student = _nested(config, "student")
     batch_size = (
         smoke["train_batch_size"] if mode == "smoke" else actor["full_train_batch_size"]
     )
@@ -311,7 +314,11 @@ def build_verl_command(
         ("data.filter_overlong_prompts", True),
         ("data.truncation", "error"),
         ("actor_rollout_ref.model.path", student_checkpoint),
-        ("actor_rollout_ref.model.use_remove_padding", True),
+        ("actor_rollout_ref.model.use_remove_padding", student["use_remove_padding"]),
+        (
+            "+actor_rollout_ref.model.override_config.attn_implementation",
+            student["attention_implementation"],
+        ),
         ("actor_rollout_ref.model.enable_gradient_checkpointing", True),
         ("actor_rollout_ref.actor.optim.lr", actor["learning_rate"]),
         ("actor_rollout_ref.actor.grad_clip", actor["grad_clip"]),
