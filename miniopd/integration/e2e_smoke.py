@@ -397,10 +397,16 @@ def check_e2e_artifacts(
     tensor_audit = _read_jsonl_if_present(run_dir / "tensor_audit.jsonl")
     sync1 = _read_jsonl_if_present(run_dir / "phase1" / "sync_versions.jsonl")
     sync2 = _read_jsonl_if_present(run_dir / "phase2" / "sync_versions.jsonl")
-    resume_pattern = re.compile(
-        rf"Resuming from .*global_step_{training['phase1_steps']}.*"
-        rf"setting global step to {training['phase1_steps']}",
-        re.IGNORECASE | re.DOTALL,
+    resume_path = rf"global_step_{training['phase1_steps']}"
+    resumed_from_checkpoint = bool(
+        re.search(rf"Resuming from .*{resume_path}", text2, re.IGNORECASE)
+    )
+    restored_global_step = bool(
+        re.search(
+            rf"setting global step to {training['phase1_steps']}",
+            text2,
+            re.IGNORECASE,
+        )
     )
     checks = {
         "subset_manifest": (run_dir / "inputs" / "subset_manifest.json").is_file(),
@@ -408,7 +414,7 @@ def check_e2e_artifacts(
         "phase2_log": phase2_log.is_file(),
         "phase1_checkpoint": checkpoint2.is_dir() and any(checkpoint2.rglob("*")),
         "final_checkpoint": checkpoint5.is_dir() and any(checkpoint5.rglob("*")),
-        "explicit_resume": bool(resume_pattern.search(text2)),
+        "explicit_resume": resumed_from_checkpoint and restored_global_step,
         "rollout": "rollout" in combined.lower(),
         "teacher_scoring": "distillation/" in combined.lower(),
         "backward_optimizer": "grad_norm" in combined.lower(),
