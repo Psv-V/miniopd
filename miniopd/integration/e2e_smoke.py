@@ -202,6 +202,11 @@ def build_e2e_commands(
     common = {
         "actor_rollout_ref.rollout.n": smoke_config["rollout"]["n"],
         "data.max_response_length": smoke_config["rollout"]["max_response_length"],
+        "actor_rollout_ref.rollout.max_model_len": (
+            int(opd_config["rollout"]["max_prompt_length"])
+            + int(smoke_config["rollout"]["max_response_length"])
+            + 1
+        ),
         "data.train_batch_size": training["train_batch_size"],
         "actor_rollout_ref.actor.ppo_mini_batch_size": training["train_batch_size"],
         "actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu": training[

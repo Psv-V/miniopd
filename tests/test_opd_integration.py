@@ -44,6 +44,8 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["actor_rollout_ref.rollout.n"] == "2"
     assert overrides["actor_rollout_ref.rollout.temperature"] == "1.0"
     assert overrides["actor_rollout_ref.rollout.top_p"] == "1.0"
+    assert overrides["actor_rollout_ref.rollout.max_model_len"] == "769"
+    assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "4"
     log_prob_micro_batch = overrides[
         "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu"
     ]
@@ -58,6 +60,21 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["trainer.total_training_steps"] == "1"
     assert overrides["trainer.n_gpus_per_node"] == "1"
     assert overrides["distillation.n_gpus_per_node"] == "1"
+
+
+def test_recipe_rejects_uneven_agent_loop_chunks(tmp_path: Path) -> None:
+    config = load_yaml(CONFIG)
+    config["smoke"]["agent_loop_num_workers"] = 3
+    with pytest.raises(IntegrationError, match="trajectory batch"):
+        build_verl_command(
+            config,
+            mode="smoke",
+            student_checkpoint=tmp_path / "student",
+            teacher_model=tmp_path / "teacher",
+            train_data=tmp_path / "train.parquet",
+            validation_data=tmp_path / "validation.parquet",
+            run_dir=tmp_path / "run",
+        )
 
 
 def test_recipe_rejects_top1_substitution() -> None:

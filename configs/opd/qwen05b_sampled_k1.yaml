@@ -55,6 +55,7 @@ resources:
 
 smoke:
   train_batch_size: 2
+  agent_loop_num_workers: 4
   total_training_steps: 1
   save_freq: 1
 
@@ -69,6 +70,7 @@ diagnostics:
   max_overhead_ratio: 0.10
 
 formal:
+  agent_loop_num_workers: 8
   checkpoint_interval_steps: 20
   validation_interval_steps: 20
   validation_generations_to_log: 8

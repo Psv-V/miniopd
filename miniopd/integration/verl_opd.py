@@ -300,6 +300,16 @@ def build_verl_command(
     batch_size = (
         smoke["train_batch_size"] if mode == "smoke" else actor["full_train_batch_size"]
     )
+    mode_config = smoke if mode == "smoke" else formal
+    agent_loop_num_workers = int(mode_config["agent_loop_num_workers"])
+    trajectory_batch_size = int(batch_size) * int(rollout["n"])
+    if agent_loop_num_workers <= 0:
+        raise IntegrationError("agent_loop_num_workers must be positive")
+    if trajectory_batch_size % agent_loop_num_workers != 0:
+        raise IntegrationError(
+            "rollout trajectory batch must be divisible by agent-loop workers: "
+            f"{trajectory_batch_size} % {agent_loop_num_workers} != 0"
+        )
     # verl validates PPO mini-batch size against the prompt batch before
     # rollout.n expands each prompt into multiple trajectories.
     mini_batch = int(batch_size)
@@ -333,6 +343,14 @@ def build_verl_command(
         ("actor_rollout_ref.rollout.n", rollout["n"]),
         ("actor_rollout_ref.rollout.temperature", rollout["temperature"]),
         ("actor_rollout_ref.rollout.top_p", rollout["top_p"]),
+        (
+            "actor_rollout_ref.rollout.max_model_len",
+            rollout["max_prompt_length"] + rollout["max_response_length"] + 1,
+        ),
+        (
+            "actor_rollout_ref.rollout.agent.num_workers",
+            agent_loop_num_workers,
+        ),
         (
             "actor_rollout_ref.rollout.tensor_model_parallel_size",
             resources["rollout_tensor_parallel_size"],

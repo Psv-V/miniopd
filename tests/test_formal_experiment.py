@@ -131,6 +131,8 @@ def test_formal_command_uses_full_epoch_validation_checkpoint_and_resume(
     assert overrides["trainer.log_val_generations"] == "8"
     assert overrides["data.train_batch_size"] == "32"
     assert overrides["actor_rollout_ref.actor.ppo_mini_batch_size"] == "32"
+    assert overrides["actor_rollout_ref.rollout.max_model_len"] == "769"
+    assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "8"
 
 
 def test_checkpoint_selection_uses_validation_and_deterministic_tie_breaks(
