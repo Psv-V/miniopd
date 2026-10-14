@@ -106,7 +106,13 @@ def _trajectory_batch(
     return input_ids, response_mask
 
 
-def _forward(model_path: Path, input_ids: torch.Tensor, device: str) -> torch.Tensor:
+def _forward(
+    model_path: Path,
+    input_ids: torch.Tensor,
+    device: str,
+    *,
+    pad_token_id: int,
+) -> torch.Tensor:
     from transformers import AutoModelForCausalLM
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -116,7 +122,10 @@ def _forward(model_path: Path, input_ids: torch.Tensor, device: str) -> torch.Te
         local_files_only=True,
     ).to(device)
     model.eval()
-    attention_mask = input_ids.ne(model.config.pad_token_id).to(device)
+    # Qwen's teacher config does not declare a pad token even though the shared
+    # tokenizer does.  The batch was padded by that tokenizer, so its id is the
+    # authoritative value for both models.
+    attention_mask = input_ids.ne(pad_token_id).to(device)
     with torch.no_grad():
         logits = model(
             input_ids=input_ids.to(device), attention_mask=attention_mask
@@ -144,8 +153,28 @@ def finalize(
     tokenizer = AutoTokenizer.from_pretrained(student_model, local_files_only=True)
     input_ids, response_mask = _trajectory_batch(tokenizer, rows)
     started = time.monotonic()
-    student_logits = _forward(student_model, input_ids, "cuda:0")
-    teacher_logits = _forward(teacher_model, input_ids, "cuda:1")
+    if tokenizer.pad_token_id is None:
+        raise ValueError("diagnostic tokenizer must define pad_token_id")
+    student_logits = _forward(
+        student_model,
+        input_ids,
+        "cuda:0",
+        pad_token_id=tokenizer.pad_token_id,
+    )
+    teacher_logits = _forward(
+        teacher_model,
+        input_ids,
+        "cuda:1",
+        pad_token_id=tokenizer.pad_token_id,
+    )
+    if student_logits.shape[-1] != teacher_logits.shape[-1]:
+        shared_vocab_size = min(student_logits.shape[-1], teacher_logits.shape[-1])
+        if int(input_ids.max()) >= shared_vocab_size:
+            raise ValueError(
+                "trajectory contains a token outside the shared vocabulary"
+            )
+        student_logits = student_logits[..., :shared_vocab_size]
+        teacher_logits = teacher_logits[..., :shared_vocab_size]
     diagnostic_seconds = time.monotonic() - started
     targets = input_ids[:, 1:]
     student_log_probs = (
