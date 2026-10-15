@@ -6,6 +6,7 @@ import pytest
 from miniopd.evaluation.pipeline import summarize_records
 from miniopd.experiments.formal import (
     ExperimentError,
+    _same_model_reference,
     build_evaluation_plan,
     build_final_report,
     build_validation_metrics,
@@ -17,6 +18,18 @@ from miniopd.integration.verl_opd import build_verl_command, load_yaml
 ROOT = Path(__file__).parents[1]
 FORMAL_CONFIG = ROOT / "configs/experiments/formal_sampled_opd.yaml"
 OPD_CONFIG = ROOT / "configs/opd/qwen05b_sampled_k1.yaml"
+
+
+def test_model_reference_accepts_equivalent_absolute_and_relative_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model = tmp_path / "models/student"
+    model.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    assert _same_model_reference("models/student", str(model.resolve()))
+    assert not _same_model_reference("org/student", "other/student")
+    assert not _same_model_reference("models/teacher", str(model.resolve()))
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:

@@ -409,6 +409,17 @@ def _average_metric(rows: Sequence[Mapping[str, Any]], key: str) -> float | None
     return sum(values) / len(values) if values else None
 
 
+def _same_model_reference(saved: str, planned: str) -> bool:
+    """Compare model IDs literally and local model paths canonically."""
+    if saved == planned:
+        return True
+    saved_path = Path(saved)
+    planned_path = Path(planned)
+    if not (saved_path.is_absolute() or planned_path.is_absolute()):
+        return False
+    return saved_path.resolve() == planned_path.resolve()
+
+
 def summarize_efficiency(
     training_run_dir: Path,
     selection: Mapping[str, Any],
@@ -530,7 +541,7 @@ def build_final_report(
         if not isinstance(command, list) or "--model" not in command:
             raise ExperimentError(f"{role} evaluation plan has no model argument")
         planned_model = str(command[command.index("--model") + 1])
-        if evaluations[role]["model"] != planned_model:
+        if not _same_model_reference(evaluations[role]["model"], planned_model):
             raise ExperimentError(
                 f"{role} saved predictions do not match the evaluation plan model"
             )
