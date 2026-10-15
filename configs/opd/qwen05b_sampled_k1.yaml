@@ -23,6 +23,10 @@ rollout:
   top_p: 1.0
   max_prompt_length: 256
   max_response_length: 512
+  # The async validation path can add framework-side tokens after the dataset
+  # length check. Keep generation capped at 512, but leave context headroom so
+  # periodic validation cannot exceed the vLLM engine's initialized capacity.
+  engine_max_model_length: 1024
   dtype: bfloat16
   tensor_model_parallel_size: 1
   gpu_memory_utilization: 0.45

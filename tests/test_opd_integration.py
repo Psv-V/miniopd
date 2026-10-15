@@ -44,7 +44,11 @@ def test_recipe_and_smoke_command_match_stage_12_contract(tmp_path: Path) -> Non
     assert overrides["actor_rollout_ref.rollout.n"] == "2"
     assert overrides["actor_rollout_ref.rollout.temperature"] == "1.0"
     assert overrides["actor_rollout_ref.rollout.top_p"] == "1.0"
-    assert overrides["actor_rollout_ref.rollout.max_model_len"] == "769"
+    assert overrides["actor_rollout_ref.rollout.max_model_len"] == "1024"
+    assert (
+        overrides["distillation.teacher_models.teacher_model.inference.max_model_len"]
+        == "1024"
+    )
     assert overrides["actor_rollout_ref.rollout.agent.num_workers"] == "4"
     log_prob_micro_batch = overrides[
         "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu"
@@ -113,6 +117,13 @@ def test_recipe_rejects_top1_substitution() -> None:
     config = load_yaml(CONFIG)
     config["method"] = "top-1"
     with pytest.raises(IntegrationError, match="method"):
+        validate_recipe(config)
+
+
+def test_recipe_rejects_engine_context_shorter_than_generation_budget() -> None:
+    config = load_yaml(CONFIG)
+    config["rollout"]["engine_max_model_length"] = 768
+    with pytest.raises(IntegrationError, match="must cover prompt and response"):
         validate_recipe(config)
 
 

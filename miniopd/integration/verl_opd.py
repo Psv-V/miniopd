@@ -70,6 +70,17 @@ def validate_recipe(config: Mapping[str, Any]) -> None:
             mismatches.append(f"{'.'.join(keys)}={actual!r}, expected {wanted!r}")
     if mismatches:
         raise IntegrationError("invalid OPD recipe: " + "; ".join(mismatches))
+    minimum_engine_length = (
+        int(_nested(config, "rollout", "max_prompt_length"))
+        + int(_nested(config, "rollout", "max_response_length"))
+        + 1
+    )
+    engine_max_model_length = int(_nested(config, "rollout", "engine_max_model_length"))
+    if engine_max_model_length < minimum_engine_length:
+        raise IntegrationError(
+            "rollout.engine_max_model_length must cover prompt and response: "
+            f"{engine_max_model_length} < {minimum_engine_length}"
+        )
     diagnostics = _nested(config, "diagnostics")
     if not isinstance(diagnostics, Mapping):
         raise IntegrationError("diagnostics config must be a mapping")
@@ -363,7 +374,7 @@ def build_verl_command(
         ("actor_rollout_ref.rollout.top_p", rollout["top_p"]),
         (
             "actor_rollout_ref.rollout.max_model_len",
-            rollout["max_prompt_length"] + rollout["max_response_length"] + 1,
+            rollout["engine_max_model_length"],
         ),
         (
             "actor_rollout_ref.rollout.agent.num_workers",
@@ -436,7 +447,7 @@ def build_verl_command(
         ),
         (
             "distillation.teacher_models.teacher_model.inference.max_model_len",
-            rollout["max_prompt_length"] + rollout["max_response_length"] + 1,
+            rollout["engine_max_model_length"],
         ),
         ("distillation.distillation_loss.loss_mode", distill["loss_mode"]),
         (
