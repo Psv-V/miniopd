@@ -467,7 +467,21 @@ def summarize_efficiency(
         "wall_seconds": wall_seconds,
         "visible_gpu_count": gpu_count,
         "peak_gpu_memory_bytes": peak_memory,
+        "peak_gpu_memory_coverage": sorted(
+            {
+                str(device.get("scope", "unspecified"))
+                for row in metrics
+                for device in row.get("gpu_memory_bytes", [])
+            }
+        ),
         **throughput,
+        "training_metric_sources": sorted(
+            {
+                str(row["record_type"])
+                for row in metrics
+                if row.get("record_type") is not None
+            }
+        ),
         "selected_checkpoint_size_bytes": selection["selected_checkpoint"][
             "total_size_bytes"
         ],

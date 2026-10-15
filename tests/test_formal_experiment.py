@@ -311,5 +311,7 @@ def test_final_report_computes_gains_and_efficiency_from_artifacts(
     assert math.isclose(report["gains"]["gap_recovery"], 0.5)
     assert report["efficiency"]["gpu_hours"] == 2.0
     assert report["efficiency"]["peak_gpu_memory_bytes"] == 120
+    assert report["efficiency"]["peak_gpu_memory_coverage"] == ["unspecified"]
+    assert report["efficiency"]["training_metric_sources"] == []
     assert len(report["efficiency"]["failed_or_interrupted_attempts"]) == 1
     assert report["all_values_from_saved_artifacts"] is True

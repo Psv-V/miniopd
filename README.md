@@ -430,7 +430,28 @@ python -m miniopd.experiments evaluation-plan \
   --output results/final-gsm8k/evaluation_plan.json
 ```
 
-Run the four saved commands, then build the final artifact-derived report:
+Run the four saved commands. Before building the report, normalize the saved
+verl console metrics and run an explicitly labelled post-hoc teacher-scoring
+benchmark on fixed saved trajectories. This does not substitute old-student
+log-prob timing for teacher timing, and an allowed missing step must have a
+saved checkpoint as evidence:
+
+```bash
+python -m miniopd.diagnostics.finalize_formal \
+  --run-dir results/opd-qwen05b-sampled-k1-s42 \
+  --log results/opd-qwen05b-sampled-k1-s42/run.log logs/opd_full*.log \
+  --student-model /path/to/selected-opd/final_model \
+  --teacher-model /path/to/Qwen2.5-Math-1.5B-Instruct \
+  --config configs/opd/qwen05b_sampled_k1.yaml \
+  --rollout-step 120 \
+  --final-step 151 \
+  --allow-missing-step 40 \
+  --rollout-samples-per-step 46
+```
+
+The command writes normalized step metrics, metric provenance, the teacher
+benchmark, Top-16/entropy diagnostics, and a tensor audit without modifying the
+checkpoint. Then build the final artifact-derived report:
 
 ```bash
 python -m miniopd.experiments final-report \
